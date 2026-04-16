@@ -44,8 +44,8 @@ export default function AddOrderTab({ onAdd }) {
 
       {/* Customer */}
       <SectionCard title="Customer Details">
-        <FocusInput label="Customer Name" value={form.name} onChange={v=>upd('name',v)} placeholder="e.g. Sailaja" required />
-        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+        <FocusInput label="Customer Name" value={form.name} onChange={v=>upd('name',v)} placeholder="e.g. Srija" required />
+        <div>
           {dateInput('Order Date','date')}
           {dateInput('Delivery Date','ddate')}
         </div>

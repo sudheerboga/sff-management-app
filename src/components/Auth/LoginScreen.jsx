@@ -47,14 +47,27 @@ export default function LoginScreen() {
       <div style={{ position:'fixed', bottom:-80, left:-60, width:260, height:260, borderRadius:'50%', background:'radial-gradient(circle,rgba(201,107,154,.10) 0%,transparent 70%)', pointerEvents:'none', zIndex:0 }} />
 
       {/* Hero */}
-      <div style={{ width:'100%', background:T.grad.dark1, borderRadius:`0 0 ${T.r.xxl}px ${T.r.xxl}px`, padding:'64px 32px 52px', textAlign:'center', position:'relative', overflow:'hidden', zIndex:1 }}>
+      <div style={{ width:'100%', background: 'linear-gradient(305deg, rgb(74 111 212) 0%, rgb(123 94 167) 40%, rgb(201 107 154) 100%)', borderRadius:`0 0 ${T.r.xxl}px ${T.r.xxl}px`, padding:'64px 32px 52px', textAlign:'center', position:'relative', overflow:'hidden', zIndex:1 }}>
         <div style={{ position:'absolute', top:'35%', left:'50%', transform:'translate(-50%,-50%)', width:200, height:200, borderRadius:'50%', background:'radial-gradient(circle,rgba(123,94,167,.35) 0%,transparent 70%)', pointerEvents:'none' }} />
         <div className="fade-up" style={{ position:'relative', zIndex:2 }}>
           <div style={{ width:90, height:90, borderRadius:28, margin:'0 auto 22px', overflow:'hidden', background:'rgba(255,255,255,.1)', backdropFilter:'blur(10px)', border:'1.5px solid rgba(255,255,255,.2)', boxShadow:'0 16px 48px rgba(123,94,167,.5)' }}>
             <img src={process.env.PUBLIC_URL+'/logo.JPG'} alt="Sri Fashion Fusion" style={{ width:'100%', height:'100%', objectFit:'cover' }} onError={e=>e.target.style.display='none'} />
           </div>
           <div style={{ fontFamily:T.fontDisplay, fontSize:28, fontWeight:700, color:'#fff', letterSpacing:'-.02em', lineHeight:1.1 }}>Sri Fashion Fusion</div>
-          <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginTop:6, letterSpacing:'.14em', textTransform:'uppercase' }}>Premium Tailoring Management</div>
+          <div>
+             <svg width="60" height="10" viewBox="0 0 60 10" fill="none">
+          <path
+            d="M0 5 Q15 1 30 5 Q45 9 60 5"
+            stroke="rgba(201,107,154,0.4)"
+            strokeWidth="1"
+            fill="none"
+          />
+        </svg>
+        <p className="text-xs text-[var(--color-text-muted)] italic font-display" style={{ fontFamily: "'Playfair Display', Georgia, serif", fontStyle: 'italic', color: 'rgb(255 255 255 / 87%)', fontSize: '0.75rem' }}>
+          Made with ♥ &amp; thread
+        </p>
+          </div>
+          {/* <div style={{ fontSize:12, color:'rgba(255,255,255,.5)', marginTop:6, letterSpacing:'.14em', textTransform:'uppercase' }}>Premium Tailoring Management</div> */}
         </div>
       </div>
 

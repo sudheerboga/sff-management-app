@@ -10,7 +10,7 @@ export function generateBillMessage(order) {
     ``,`*Order Details* 👗`,`━━━━━━━━━━━━━━━`,items,``,
     `*Payment* 💰`,`━━━━━━━━━━━━━━━`,
     `Total   : *${fmt(order.total)}*`,
-    order.material>0 ? `Material: ${fmt(order.material)}` : null,
+    // order.material>0 ? `Material: ${fmt(order.material)}` : null,
     order.given>0    ? `Paid    : ${fmt(order.given)}`    : null,
     order.balance>0  ? `Balance : *${fmt(order.balance)}*` : `✅ Fully Paid`,
     `━━━━━━━━━━━━━━━`,``,`Thank you for choosing us ❤️`,`DM for custom designs ✨`,

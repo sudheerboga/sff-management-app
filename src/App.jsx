@@ -18,7 +18,7 @@ function MainApp({ user }) {
   const { orders, measurements, loading, addOrder, updateOrder, saveMeasurement } = useUserData(user.uid);
 
   return (
-    <div style={{ width:'100%', maxWidth:430, minHeight:'100vh', background:T.bg, position:'relative', boxShadow:'0 0 60px rgba(26,22,37,.15)' }}>
+    <div style={{ width:'100%', maxWidth:430, minHeight:'100vh', background: 'white', position:'relative', boxShadow:'0 0 60px rgba(26,22,37,.15)' }}>
       <AppHeader user={user} />
 
       <div style={{ paddingTop:12, minHeight:'calc(100vh - 60px)' }}>

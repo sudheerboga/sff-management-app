@@ -56,8 +56,8 @@ export default function OrderModal({ order, onClose, onSave }) {
         {/* Customer */}
         <div style={{ background:T.card, borderRadius:T.r.lg, padding:16, marginBottom:12, border:`1px solid ${T.border}`, boxShadow:T.sh.xs }}>
           <div style={{ fontSize:11, fontWeight:700, color:T.muted, textTransform:'uppercase', letterSpacing:'.08em', marginBottom:14 }}>Customer Details</div>
-          <FocusInput label="Customer Name" value={form.name} onChange={v=>upd('name',v)} placeholder="e.g. Sailaja" required />
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+          <FocusInput label="Customer Name" value={form.name} onChange={v=>upd('name',v)} placeholder="e.g. Srija" required />
+          <div>
             {dateInput('Order Date','date')}
             {dateInput('Delivery Date','ddate')}
           </div>
