@@ -43,7 +43,7 @@ const ICONS = {
 
   // 🛍️ Orders — shopping bag with a stitch seam line
   orders: (
-    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5}>
+    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5} color='white'>
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 11V8a5 5 0 0110 0v3" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 11h20l-2 13H6L4 11z" />
       <path strokeLinecap="round" strokeDasharray="2 2" d="M8 17h12" />
@@ -52,7 +52,7 @@ const ICONS = {
 
   // 📊 Reports — scroll/parchment with a mini graph inside
   reports: (
-    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5}>
+    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5} color='white'>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h12l4 4v16a1 1 0 01-1 1H7a1 1 0 01-1-1V4z" />
       <path strokeLinecap="round" d="M16 4v4h4" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M9 17l3-3 2.5 2.5L18 13" />
@@ -61,7 +61,7 @@ const ICONS = {
 
   // 📏 Sizes — tailor's tape measure curved ribbon
   sizes: (
-    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5}>
+    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5} color='white'>
       <path strokeLinecap="round" d="M3 18 Q8 10 14 14 Q20 18 25 10" />
       <path strokeLinecap="round" d="M6 15.5v2.5" />
       <path strokeLinecap="round" d="M10 13v2" />
@@ -74,7 +74,7 @@ const ICONS = {
 
   // ✨ New — needle with a plus spark
   new: (
-    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5}>
+    <svg width="28" height="28" fill="none" viewBox="0 0 28 28" stroke="currentColor" strokeWidth={1.5} color='white'>
       <path strokeLinecap="round" d="M14 4v20M4 14h20" />
       <path strokeLinecap="round" d="M8.5 8.5l11 11M19.5 8.5l-11 11" opacity={0.4} />
       <circle cx="14" cy="14" r="3" />
@@ -99,7 +99,7 @@ export default function BottomNav({ active, onChange }) {
     <div style={{
       position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)',
       width:'100%', maxWidth:430,
-      background: 'linear-gradient(230deg, rgb(74 111 212 / 50%) 0%, rgb(123 94 167 / 50%) 40%, rgb(201 107 154 / 50%) 100%)',
+      background: 'linear-gradient(227deg, rgb(74 111 212 / 61%) 0%, rgb(123 94 167 / 31%) 40%, rgb(201 107 154 / 70%) 100%)',
       backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
       borderTop:`1px solid ${T.border}`,
       display:'flex', zIndex:50,

@@ -28,7 +28,7 @@ export default function AddOrderTab({ onAdd }) {
   const dateInput = (label, key) => (
     <div style={{ marginBottom:14 }}>
       <label style={{ fontSize:11, fontWeight:700, color:T.muted, display:'block', marginBottom:5, textTransform:'uppercase', letterSpacing:'.07em', fontFamily:T.fontBody }}>{label}</label>
-      <input type="date" value={form[key]} onChange={e=>upd(key,e.target.value)} style={{ ...inputBase(), width:'100%' }} />
+      <input type="date" value={form[key]} onChange={e=>upd(key,e.target.value)} style={{ ...inputBase(), width:'60%' }} />
     </div>
   );
 

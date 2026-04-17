@@ -8,7 +8,7 @@ export default function AppHeader({ user }) {
   const phone = user?.phoneNumber?.replace('+91','').replace(/(\d{5})(\d{5})/,'$1 $2')||'User';
 
   return (
-    <div style={{ background:'linear-gradient(230deg, rgb(74 111 212 / 50%) 0%, rgb(123 94 167 / 50%) 40%, rgb(201 107 154 / 50%) 100%)', backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)', padding:'12px 20px 10px', borderBottom:`1px solid ${T.border}`, position:'sticky', top:0, zIndex:40, fontFamily:T.fontBody }}>
+    <div style={{ backdropFilter:'blur(30px)', WebkitBackdropFilter:'blur(20px)', padding:'12px 20px 10px', borderBottom:`1px solid ${T.border}`, position:'sticky', top:0, zIndex:40, fontFamily:T.fontBody }}>
       <div style={{ display:'flex', alignItems:'center', gap:12 }}>
         <Logo size={38} showText textSize={14} />
         <div style={{ flex:1 }} />

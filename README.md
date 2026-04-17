@@ -40,7 +40,7 @@ Firestore
         ├── orders/
         │   └── {orderId}             ← name, date, items, total, profit, balance, status …
         └── measurements/
-            └── data                  ← { "Sailaja": { blouse:{bust:36,…}, frock:{}, … } }
+            └── data                  ← { "Srija": { blouse:{bust:36,…}, frock:{}, … } }
 ```
 
 ## Project Structure
@@ -177,7 +177,7 @@ Firestore
         │   │                            material, given, balance, profit, status
         │   └── ...
         └── measurements/
-            └── data                  ← { "Sailaja": { blouse: {...}, frock: {...} } }
+            └── data                  ← { "Srija": { blouse: {...}, frock: {...} } }
 ```
 
 ---
