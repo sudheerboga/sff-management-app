@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { inputBase } from '../../styles/theme';
-import { FocusInput, SelectInput, PrimaryButton } from '../shared';
+import { FocusInput, SelectInput, PrimaryButton, Toast } from '../shared';
 
 const BLANK = { name:'', mobile:'', date:new Date().toISOString().split('T')[0], ddate:'', items:'', total:'', material:'', given:'', status:'In Progress' };
 const calcBal  = (t,g) => Math.max(0,parseFloat(t||0)-parseFloat(g||0));
@@ -12,6 +12,8 @@ export default function OrderModal({ order, onClose, onSave }) {
   const [form, setForm] = useState(BLANK);
   const [saving, setSaving] = useState(false);
   const upd = (k,v) => setForm(f=>({...f,[k]:v}));
+  const [toast, setToast] = useState({ visible:false, msg:'' });
+  const showToast = msg => { setToast({visible:true,msg}); setTimeout(()=>setToast(t=>({...t,visible:false})),2500); };
 
   useEffect(() => {
     setForm(order?.id ? {...BLANK,...order} : {...BLANK, date:new Date().toISOString().split('T')[0]});
@@ -23,6 +25,7 @@ export default function OrderModal({ order, onClose, onSave }) {
     setSaving(true);
     try {
       await onSave({ ...form, total:parseFloat(form.total), material:parseFloat(form.material||0), given:parseFloat(form.given||0), balance:calcBal(form.total,form.given), profit:calcProf(form.total,form.material) });
+      showToast('Order updated successfully!');
       onClose();
     } finally { setSaving(false); }
   }
@@ -42,6 +45,8 @@ export default function OrderModal({ order, onClose, onSave }) {
   return (
     <div style={{ position:'fixed', inset:0, background:T.isDark?'rgba(0,0,0,0.75)':'rgba(0,0,0,0.4)', zIndex:100, display:'flex', alignItems:'flex-end', backdropFilter:'blur(8px)' }}
       onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
+      <Toast message={toast.msg} visible={toast.visible} />
+        
       <div className="scale-in" style={{
         background:sheetBg, backdropFilter:'blur(30px)',
         borderRadius:`${T.r.xxl}px ${T.r.xxl}px 0 0`,
@@ -77,7 +82,7 @@ export default function OrderModal({ order, onClose, onSave }) {
           </div>
           {dateInput('Order Date','date')}
           {dateInput('Delivery Date','ddate')}
-          <FocusInput label="Stitching Items" value={form.items} onChange={v=>upd('items',v)} placeholder="2 Blouses, 1 Saree Fall Pico" rows={3} />
+          <FocusInput label="Stitching Items" value={form.items} onChange={v=>upd('items',v)} placeholder="2 Blouses, 1 Saree Fall Pico" rows={5} />
         </div>
 
         {/* Payment */}

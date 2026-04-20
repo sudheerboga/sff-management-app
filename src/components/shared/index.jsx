@@ -51,7 +51,7 @@ export function StatusBadge({ status }) {
   const badge = map[status] || T.danger;
   return (
     <span style={{ fontSize:11, padding:'4px 10px', borderRadius:T.r.pill, fontWeight:700, fontFamily:T.fontBody,
-      background:badge.bg, color:badge.text, border:`1px solid ${badge.border}`, whiteSpace:'nowrap', letterSpacing:'.04em', marginTop: '1rem'}}>
+      background:badge.bg, color:badge.text, border:`1px solid ${badge.border}`, whiteSpace:'nowrap', letterSpacing:'.04em'}}>
       {status}
     </span>
   );
@@ -80,19 +80,19 @@ export function LoadingDots() {
 }
 
 // ── Toast ──────────────────────────────────────────────────────────────────────
-export function Toast({ message, visible, type='success' }) {
+export function Toast({ message, visible, type='error' }) {
   const T = useT();
   if (!visible) return null;
   return (
     <div className="fade-up" style={{
-      position:'fixed', bottom:96, left:'50%', transform:'translateX(-50%)',
-      background: type==='error' ? T.danger.bg : (T.isDark?'rgba(26,21,48,0.96)':'rgba(255,255,255,0.96)'),
+      position:'fixed', transform:'translateX(-50%)',
+      background: type==='error' ? T.danger.bg : 'linear-gradient(135deg, rgb(74, 111, 212) 0%, rgb(123, 94, 167) 40%, rgb(201, 107, 154) 100%)',
       backdropFilter:'blur(20px)',
-      color: type==='error' ? T.danger.text : T.text,
+      color: type==='error' ? T.danger.text : 'white',
       padding:'11px 22px', borderRadius:T.r.pill, fontSize:13, fontWeight:600, fontFamily:T.fontBody,
       zIndex:999, whiteSpace:'nowrap',
       border:`1px solid ${type==='error' ? T.danger.border : T.borderAccent}`,
-      boxShadow:T.sh.lg, letterSpacing:'.02em',
+      boxShadow:T.sh.lg, letterSpacing:'.02em', width: '90%'
     }}>
       {type==='success'?'✦ ':'⚠ '}{message}
     </div>

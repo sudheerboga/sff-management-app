@@ -13,7 +13,7 @@ export default function MeasurementsTab({ orders, measurements, onSaveMeasuremen
   const [newName, setNewName]   = useState('');
   const [addMode, setAddMode]   = useState(false);
 
-  const allNames = [...new Set([...Object.keys(measurements),...orders.map(o=>o.name)])].sort();
+  const allNames = [...new Set([...Object.keys(measurements)])].sort();
   const filtered = allNames.filter(n=>n.toLowerCase().includes(search.toLowerCase()));
 
   function handleAdd() { const t=newName.trim(); if(!t) return; setSelected(t); setNewName(''); setAddMode(false); }
@@ -75,7 +75,7 @@ export default function MeasurementsTab({ orders, measurements, onSaveMeasuremen
                   onTouchStart={e=>e.currentTarget.style.transform='scale(.985)'}
                   onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}
                 >
-                  <div style={{ position:'absolute', left:0, top:'20%', bottom:'20%', width:1.8, borderRadius:'0 2px 2px 0', background:T.grad.rose, opacity:.6 }} />
+                  <div style={{ position:'absolute', left:0, top:'20%', bottom:'20%', width:0, borderRadius:'0 2px 2px 0', background:T.grad.rose, opacity:.6 }} />
                   <Avatar name={name} size={44} />
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:14, fontWeight:700, color:T.text }}>{name}</div>

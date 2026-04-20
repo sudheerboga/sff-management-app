@@ -53,7 +53,7 @@ export default function AddOrderTab({ onAdd }) {
         </div>
         {dateInput('Order Date','date')}
         {dateInput('Delivery Date','ddate')}
-        <FocusInput label="Stitching Items" value={form.items} onChange={v=>upd('items',v)} placeholder="2 Blouses, 1 Saree Fall Pico, 1 Lehenga" rows={3} />
+        <FocusInput label="Stitching Items" value={form.items} onChange={v=>upd('items',v)} placeholder="2 Blouses, 1 Saree Fall Pico, 1 Lehenga" rows={5} />
       </SectionCard>
       <SectionCard title="Payment Details">
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>

@@ -34,7 +34,7 @@ export default function AppHeader({ user }) {
           cursor:'pointer', display:'flex', alignItems:'center', gap:6,
           transition:'all .25s', fontFamily:T.fontBody,
         }}>
-          <span style={{ fontSize:14 }}>{isDark ? '☀️' : '🌙'}</span>
+          <span style={{ fontSize:10 }}>{isDark ? '☀️' : '🌙'}</span>
           <span style={{ fontSize:10, fontWeight:700, color:T.text2, letterSpacing:'.04em' }}>
             {isDark ? 'Light' : 'Dark'}
           </span>
