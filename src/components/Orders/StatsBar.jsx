@@ -17,7 +17,7 @@ export default function StatsBar({ orders }) {
   ];
 
   return (
-    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:18 }}>
+    <div id='sff-stats-bar' style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:18 }}>
       {stats.map((s,i) => (
         <div key={i} className="scale-in" style={{
           background:s.bg, border:`1px solid ${s.border}`,

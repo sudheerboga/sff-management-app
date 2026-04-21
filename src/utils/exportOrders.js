@@ -8,7 +8,6 @@ export async function exportOrdersPDF(orders, label='All Orders') {
   const { default: autoTable } = await import('jspdf-autotable');
   const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
 
-  // Header
   doc.setFillColor(74,111,212);  doc.rect(0,0,297,24,'F');
   doc.setFillColor(123,94,167);  doc.rect(99,0,198,24,'F');
   doc.setFillColor(201,107,154); doc.rect(198,0,99,24,'F');
@@ -19,7 +18,6 @@ export async function exportOrdersPDF(orders, label='All Orders') {
   doc.text(`${label}   •   Generated ${new Date().toLocaleString('en-IN')}`,14,17);
   doc.text(`Total: ${orders.length} orders`,283,10,{align:'right'});
 
-  // Summary row
   const totalRev  = orders.reduce((s,o)=>s+(o.total||0),0);
   const totalProf = orders.reduce((s,o)=>s+(o.profit||0),0);
   const totalBal  = orders.reduce((s,o)=>s+(o.balance||0),0);
@@ -28,18 +26,10 @@ export async function exportOrdersPDF(orders, label='All Orders') {
   doc.text(`Revenue: ${fmt(totalRev)}   Profit: ${fmt(totalProf)}   Balance Due: ${fmt(totalBal)}`,14,32);
 
   const rows = orders.map(o => [
-    o.sffId||'-',
-    o.name||'-',
-    o.mobile||'-',
-    fmtD(o.date),
-    fmtD(o.ddate)||'-',
-    o.items||'-',
-    o.status||'-',
-    fmt(o.total),
-    fmt(o.material||0),
-    fmt(o.given||0),
-    fmt(o.balance||0),
-    fmt(o.profit||0),
+    o.sffId||'-', o.name||'-', o.mobile||'-',
+    fmtD(o.date), fmtD(o.ddate)||'-',
+    o.items||'-', o.status||'-',
+    fmt(o.total), fmt(o.material||0), fmt(o.given||0), fmt(o.balance||0), fmt(o.profit||0),
   ]);
 
   autoTable(doc,{
@@ -51,22 +41,13 @@ export async function exportOrdersPDF(orders, label='All Orders') {
     headStyles:{fillColor:[123,94,167],textColor:255,fontStyle:'bold',fontSize:8},
     alternateRowStyles:{fillColor:[243,239,249]},
     columnStyles:{
-      0:{cellWidth:28,fontStyle:'bold'},
-      1:{cellWidth:26},
-      2:{cellWidth:22},
-      3:{cellWidth:22},
-      4:{cellWidth:22},
-      5:{cellWidth:40},
-      6:{cellWidth:18},
-      7:{cellWidth:18,halign:'right'},
-      8:{cellWidth:18,halign:'right'},
-      9:{cellWidth:18,halign:'right'},
-      10:{cellWidth:18,halign:'right'},
-      11:{cellWidth:18,halign:'right'},
+      0:{cellWidth:28,fontStyle:'bold'},1:{cellWidth:26},2:{cellWidth:22},
+      3:{cellWidth:22},4:{cellWidth:22},5:{cellWidth:40},6:{cellWidth:18},
+      7:{cellWidth:18,halign:'right'},8:{cellWidth:18,halign:'right'},
+      9:{cellWidth:18,halign:'right'},10:{cellWidth:18,halign:'right'},11:{cellWidth:18,halign:'right'},
     },
   });
 
-  // Footer
   const pageCount = doc.internal.getNumberOfPages();
   for (let i=1;i<=pageCount;i++) {
     doc.setPage(i);
@@ -80,42 +61,64 @@ export async function exportOrdersPDF(orders, label='All Orders') {
   doc.save(`sff_orders_${fileLabel}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
-export async function exportOrdersExcel(orders, label='All Orders') {
-  const XLSX = await import('xlsx');
+export async function exportOrdersExcel(orders, label = 'All Orders') {
+  // ✅ FIX: destructure .default so XLSX.utils and XLSX.writeFile actually exist
+  const { default: XLSX } = await import('xlsx');
+
   const wb = XLSX.utils.book_new();
 
-  // Summary sheet
-  const totalRev  = orders.reduce((s,o)=>s+(o.total||0),0);
-  const totalProf = orders.reduce((s,o)=>s+(o.profit||0),0);
-  const totalBal  = orders.reduce((s,o)=>s+(o.balance||0),0);
+  // ── Summary sheet ─────────────────────────────────────────────
+  const totalRev  = orders.reduce((s,o) => s + (o.total    || 0), 0);
+  const totalProf = orders.reduce((s,o) => s + (o.profit   || 0), 0);
+  const totalBal  = orders.reduce((s,o) => s + (o.balance  || 0), 0);
 
   const summaryRows = [
     ['Sri Fashion Fusion — Orders Export'],
     [`Filter: ${label}`],
     [`Generated: ${new Date().toLocaleString('en-IN')}`],
     [],
-    ['Total Orders', orders.length],
-    ['Total Revenue', totalRev],
-    ['Total Profit', totalProf],
+    ['Total Orders',      orders.length],
+    ['Total Revenue',     totalRev],
+    ['Total Profit',      totalProf],
     ['Total Balance Due', totalBal],
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summaryRows);
-  wsSummary['!cols'] = [{wch:22},{wch:18}];
+  wsSummary['!cols'] = [{wch:24},{wch:18}];
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
 
-  // Orders sheet
-  const header = ['Order ID','Customer','Mobile','Order Date','Delivery Date','Items','Status','Total (₹)','Material (₹)','Paid (₹)','Balance (₹)','Profit (₹)'];
-  const dataRows = orders.map(o=>[
-    o.sffId||'-', o.name||'-', o.mobile||'-',
-    fmtD(o.date), fmtD(o.ddate)||'-',
-    o.items||'-', o.status||'-',
-    Number(o.total||0), Number(o.material||0), Number(o.given||0), Number(o.balance||0), Number(o.profit||0),
+  // ── Orders sheet ──────────────────────────────────────────────
+  const header = [
+    'Order ID','Customer','Mobile',
+    'Order Date','Delivery Date',
+    'Items','Status',
+    'Total (₹)','Material (₹)','Paid (₹)','Balance (₹)','Profit (₹)',
+  ];
+
+  // ✅ FIX: map EACH order to a row — was previously dropping all order details
+  const dataRows = orders.map(o => [
+    o.sffId    || '-',
+    o.name     || '-',
+    o.mobile   || '-',
+    fmtD(o.date),
+    o.ddate    ? fmtD(o.ddate) : '-',
+    o.items    || '-',
+    o.status   || '-',
+    Number(o.total     || 0),
+    Number(o.material  || 0),
+    Number(o.given     || 0),
+    Number(o.balance   || 0),
+    Number(o.profit    || 0),
   ]);
 
-  const wsOrders = XLSX.utils.aoa_to_sheet([header,...dataRows]);
-  wsOrders['!cols'] = [{wch:22},{wch:20},{wch:14},{wch:14},{wch:14},{wch:36},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14}];
+  const wsOrders = XLSX.utils.aoa_to_sheet([header, ...dataRows]);
+  wsOrders['!cols'] = [
+    {wch:22},{wch:22},{wch:14},
+    {wch:14},{wch:14},
+    {wch:36},{wch:14},
+    {wch:13},{wch:13},{wch:13},{wch:13},{wch:13},
+  ];
   XLSX.utils.book_append_sheet(wb, wsOrders, 'Orders');
 
-  const fileLabel = label.replace(/[^a-z0-9]/gi,'_').toLowerCase();
+  const fileLabel = label.replace(/[^a-z0-9]/gi, '_').toLowerCase();
   XLSX.writeFile(wb, `sff_orders_${fileLabel}_${new Date().toISOString().split('T')[0]}.xlsx`);
 }

@@ -38,7 +38,7 @@ export default function LoginScreen() {
     : 'linear-gradient(160deg,#7B5EA7 0%,#4A6FD4 50%,#C96B9A 100%)';
 
   return (
-    <div style={{ minHeight:'100vh', background:T.bg, fontFamily:T.fontBody, position:'relative', overflow:'hidden', transition:'background .3s' }}>
+    <div id='sff-login-screen' style={{ minHeight:'100vh', background:T.bg, fontFamily:T.fontBody, position:'relative', overflow:'hidden', transition:'background .3s' }}>
       <div style={{ position:'fixed', inset:0, background:T.grad.mesh, pointerEvents:'none', zIndex:0 }} />
 
       {/* Hero */}

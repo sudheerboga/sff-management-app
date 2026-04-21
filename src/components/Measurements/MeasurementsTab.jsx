@@ -24,7 +24,7 @@ export default function MeasurementsTab({ orders, measurements, onSaveMeasuremen
   const cardBorder = isDark ? 'rgba(155,127,212,0.12)' : T.border;
 
   return (
-    <div style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
+    <div id='sff-measurements-tab' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <div className="fade-up" style={{ marginBottom:18, paddingTop:4 }}>
         <div style={{ fontFamily:T.fontDisplay, fontSize:22, fontWeight:600, color:T.text, letterSpacing:'-.01em' }}>Measurements</div>
         <div style={{ fontSize:12, color:T.muted, marginTop:3 }}>{allNames.length} customer{allNames.length!==1?'s':''} saved</div>

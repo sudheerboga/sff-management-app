@@ -11,38 +11,39 @@ const TABS = [
 export default function BottomNav({ active, onChange }) {
   const { theme: T, isDark } = useTheme();
   return (
-    <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430,
-      background: T.navBg, backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
+    <div id="sff-bottom-nav" style={{
+      position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:430,
+      background:T.navBg, backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
       borderTop:`1px solid ${T.border}`, display:'flex', zIndex:50,
       paddingBottom:'max(10px,env(safe-area-inset-bottom,0px))', borderRadius:'22px 22px 0 0',
       transition:'background .3s',
     }}>
-      <div style={{ position:'absolute', top:0, left:'10%', right:'10%', height:1,
+      <div id="sff-nav-accent" style={{ position:'absolute', top:0, left:'10%', right:'10%', height:1,
         background:'linear-gradient(90deg,transparent,rgba(123,94,167,0.5),rgba(201,107,154,0.5),transparent)',
         borderRadius:1, pointerEvents:'none' }} />
       {TABS.map(t => {
         const isActive = active===t.id;
-        const isAdd = t.id==='add';
+        const isAdd    = t.id==='add';
         return (
-          <button key={t.id} onClick={()=>onChange(t.id)}
-            style={{ flex:1, padding:`${10}px 4px 12px`, background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:4, fontFamily:T.fontBody, WebkitTapHighlightColor:'transparent', position:'relative' }}
+          <button
+            key={t.id}
+            id={`sff-nav-btn-${t.id}`}
+            onClick={()=>onChange(t.id)}
+            style={{ flex:1, padding:`10px 4px 12px`, background:'none', border:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:4, fontFamily:T.fontBody, WebkitTapHighlightColor:'transparent', position:'relative' }}
             onMouseDown={e=>e.currentTarget.style.transform='scale(.90)'}
             onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
             onTouchStart={e=>e.currentTarget.style.transform='scale(.90)'}
             onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}
           >
             {isAdd ? (
-              <div style={{ width:34, height:34, borderRadius:'50%', background:isActive?T.grad.gold:T.grad.brand, display:'flex', alignItems:'center', justifyContent:'center',
-                boxShadow:isActive?`0 6px 20px rgba(212,175,111,.4)`:T.sh.brand, transition:'all .2s', color:'#fff' }}>{t.icon}</div>
+              <div id="sff-nav-add-circle" style={{ width:34, height:34, borderRadius:'50%', background:isActive?T.grad.gold:T.grad.brand, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:isActive?`0 6px 20px rgba(212,175,111,.4)`:T.sh.brand, transition:'all .2s', color:'#fff' }}>{t.icon}</div>
             ) : (
-              <div style={{ width:40, height:34, borderRadius:T.r.md, display:'flex', alignItems:'center', justifyContent:'center',
-                background:isActive?(isDark?'rgba(123,94,167,0.15)':'rgba(123,94,167,0.1)'):'transparent',
-                color:isActive?T.violet.d:T.muted, transition:'all .2s', position:'relative' }}>
+              <div id={`sff-nav-icon-${t.id}`} style={{ width:40, height:34, borderRadius:T.r.md, display:'flex', alignItems:'center', justifyContent:'center', background:isActive?(isDark?'rgba(123,94,167,0.15)':'rgba(123,94,167,0.1)'):'transparent', color:isActive?T.violet.d:T.muted, transition:'all .2s', position:'relative' }}>
                 {isActive && <div style={{ position:'absolute', top:2, left:'50%', transform:'translateX(-50%)', width:16, height:2, borderRadius:1, background:T.grad.brand }} />}
                 {t.icon}
               </div>
             )}
-            <span style={{ fontSize:9.5, fontWeight:isActive?700:400, color:isAdd?(isActive?T.gold.d:T.muted):(isActive?T.violet.d:T.muted), letterSpacing:'.05em', transition:'color .2s' }}>{t.label}</span>
+            <span id={`sff-nav-label-${t.id}`} style={{ fontSize:9.5, fontWeight:isActive?700:400, color:isAdd?(isActive?T.gold.d:T.muted):(isActive?T.violet.d:T.muted), letterSpacing:'.05em', transition:'color .2s' }}>{t.label}</span>
           </button>
         );
       })}

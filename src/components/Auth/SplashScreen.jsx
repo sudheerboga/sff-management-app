@@ -10,7 +10,7 @@ export default function SplashScreen() {
   }, []);
 
   return (
-    <div style={{ minHeight:'100vh', width:'100%', background:T.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', fontFamily:T.fontBody, transition:'background .3s' }}>
+    <div id='sff-splash-screen' style={{ minHeight:'100vh', width:'100%', background:T.bg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', position:'relative', overflow:'hidden', fontFamily:T.fontBody, transition:'background .3s' }}>
       <div style={{ position:'absolute', inset:0, background:T.grad.mesh, pointerEvents:'none' }} />
       {isDark && <>
         <div style={{ position:'absolute', top:'12%', left:'10%', width:280, height:280, borderRadius:'50%', background:'radial-gradient(circle,rgba(123,94,167,.18) 0%,transparent 70%)', animation:'orb1 8s ease-in-out infinite', pointerEvents:'none' }} />

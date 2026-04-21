@@ -112,7 +112,7 @@ export default function OrdersTab({ orders, onAdd, onUpdate }) {
   const cardBorder = T.isDark ? 'rgba(155,127,212,0.15)' : T.border;
 
   return (
-    <div style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
+    <div id='sff-orders-tab' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <Toast message={toast.msg} visible={toast.visible} type={toast.type} />
 
       {/* Page header */}

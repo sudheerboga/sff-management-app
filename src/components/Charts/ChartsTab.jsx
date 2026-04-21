@@ -64,7 +64,7 @@ export default function ChartsTab({ orders }) {
   if (orders.length===0) return <EmptyState icon="📊" title="No data yet" sub="Add orders to see your reports and analytics" />;
 
   return (
-    <div style={{padding:`0 ${T.sp.page}px 100px`,fontFamily:T.fontBody}}>
+    <div id='sff-charts-tab' style={{padding:`0 ${T.sp.page}px 100px`,fontFamily:T.fontBody}}>
       <div className="fade-up" style={{marginBottom:18,paddingTop:4}}>
         <div style={{fontFamily:T.fontDisplay,fontSize:22,fontWeight:600,color:T.text,letterSpacing:'-.01em'}}>Reports</div>
         <div style={{fontSize:12,color:T.muted,marginTop:3}}>Business analytics & insights</div>

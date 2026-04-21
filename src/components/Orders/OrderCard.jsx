@@ -24,6 +24,7 @@ export default function OrderCard({ order, onClick }) {
         transform: pressed ? 'scale(.982)' : 'scale(1)',
         position: 'relative', overflow: 'hidden',
       }}
+      onClick={() => onClick(order)}
         onMouseDown={() => setPressed(true)} onMouseUp={() => setPressed(false)}
         onTouchStart={() => setPressed(true)} onTouchEnd={() => setPressed(false)}
       >

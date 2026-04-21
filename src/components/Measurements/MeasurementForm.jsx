@@ -55,7 +55,7 @@ export default function MeasurementForm({ customerName, measurements, onSave, on
   const labelColor = isDark?T.gold.d:T.violet.d;
 
   return (
-    <div style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
+    <div id='sff-measurement-form' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <Toast message={toast.msg} visible={toast.visible} type={toast.type} />
 
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, paddingTop:4 }}>

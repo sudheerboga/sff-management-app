@@ -19,7 +19,7 @@ export default function WhatsAppBillModal({ order, onClose }) {
   const sectionBg = T.isDark ? 'rgba(26,21,48,0.7)'  : T.bg;
 
   return (
-    <div style={{ position:'fixed', inset:0, background:T.isDark?'rgba(0,0,0,0.8)':'rgba(0,0,0,0.4)', zIndex:200, display:'flex', alignItems:'flex-end', backdropFilter:'blur(8px)' }}
+    <div id='sff-wa-modal-overlay' style={{ position:'fixed', inset:0, background:T.isDark?'rgba(0,0,0,0.8)':'rgba(0,0,0,0.4)', zIndex:200, display:'flex', alignItems:'flex-end', backdropFilter:'blur(8px)' }}
       onClick={e=>{if(e.target===e.currentTarget) onClose();}}>
       <div className="scale-in" style={{
         background:sheetBg, backdropFilter:'blur(30px)',

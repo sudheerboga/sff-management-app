@@ -35,7 +35,7 @@ export default function AddOrderTab({ onAdd }) {
   );
 
   return (
-    <div style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
+    <div id='sff-add-order-tab' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <Toast message={toast.msg} visible={toast.visible} />
       <div className="fade-up" style={{ marginBottom:20, paddingTop:4 }}>
         <div style={{ fontFamily:T.fontDisplay, fontSize:22, fontWeight:600, color:T.text, letterSpacing:'-.01em' }}>New Order</div>
