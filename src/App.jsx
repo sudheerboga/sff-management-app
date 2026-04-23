@@ -20,6 +20,7 @@ function MainApp({ user }) {
   const [tab, setTab] = useState('orders');
   const { orders, measurements, loading, addOrder, updateOrder, saveMeasurement } = useUserData(user.uid);
   const { theme: T } = useTheme();
+  const isIPhone = /iPhone/i.test(navigator.userAgent);
 
   // ── Swipe gesture refs ────────────────────────────────────────
   const touchStartX = useRef(null);
@@ -78,7 +79,7 @@ function MainApp({ user }) {
 
       <div id="sff-content" style={{ position:'relative', zIndex:1 }}>
         <AppHeader user={user} />
-        <div id="sff-tab-content" style={{ paddingTop:'5rem', minHeight:'calc(100vh - 60px)' }}>
+        <div id="sff-tab-content" style={{ paddingTop: isIPhone ? '8rem' : '5rem', minHeight:'calc(100vh - 60px)' }}>
           {loading ? <LoadingDots /> : <>
             {tab==='orders'  && <OrdersTab orders={orders} onAdd={addOrder} onUpdate={updateOrder} />}
             {tab==='add'     && <AddOrderTab onAdd={o=>{ addOrder(o); setTab('orders'); }} />}

@@ -15,7 +15,7 @@ export default function AppHeader({ user }) {
       background: T.headerBg, backdropFilter: 'blur(30px)', WebkitBackdropFilter: 'blur(30px)',
       padding: '12px 20px 11px', borderBottom: `1px solid ${T.border}`,
       position: 'fixed', zIndex: 40, fontFamily: T.fontBody, transition: 'background .3s, border-color .3s',
-      width: '100%', paddingTop: isIPhone ? '58px' : 12,
+      width: '100%', paddingTop: isIPhone ? '58px' : 12, maxWidth: '430px'
     }}>
       <div id="sff-header-accent" style={{
         position: 'absolute', top: 0, left: 0, right: 0, height: 1,
@@ -31,7 +31,7 @@ export default function AppHeader({ user }) {
           background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)', border: `1px solid ${T.border}`,
           borderRadius: T.r.pill, padding: '5px 11px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'all .25s', fontFamily: T.fontBody,
         }}>
-          <span style={{ fontSize: 14 }}>{isDark ? '☀️' : '🌙'}</span>
+          <span style={{ fontSize: 10 }}>{isDark ? '☀️' : '🌙'}</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: T.text2, letterSpacing: '.04em' }}>{isDark ? 'Light' : 'Dark'}</span>
         </button>
 
