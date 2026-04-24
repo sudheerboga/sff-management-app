@@ -34,7 +34,7 @@ function CustomTip({active,payload,label}) {
 const VIEWS = [{id:'monthly',label:'Monthly'},{id:'customers',label:'Customers'},{id:'status',label:'Status'}];
 const PALETTE = ['#7B5EA7','#C96B9A','#4A6FD4','#D4AF6F','#4ade80'];
 
-export default function ChartsTab({ orders, onOpenCashBook }) {
+export default function ChartsTab({ orders }) {
   const { theme: T, isDark } = useTheme();
   const [view, setView] = useState('monthly');
 
@@ -69,37 +69,6 @@ export default function ChartsTab({ orders, onOpenCashBook }) {
         <div style={{fontFamily:T.fontDisplay,fontSize:22,fontWeight:600,color:T.text,letterSpacing:'-.01em'}}>Reports</div>
         <div style={{fontSize:12,color:T.muted,marginTop:3}}>Business analytics & insights</div>
       </div>
-
-      {/* ── Cash Book entry point ─────────────────────────────── */}
-      <button
-        onClick={onOpenCashBook}
-        style={{
-          width:'100%', padding:'15px 20px',
-          background: isDark
-            ? 'linear-gradient(135deg,rgba(26,15,53,0.9) 0%,rgba(13,10,24,0.95) 100%)'
-            : 'linear-gradient(135deg,rgba(243,239,249,1) 0%,rgba(253,240,246,1) 100%)',
-          border: `1.5px solid ${isDark?'rgba(155,127,212,0.25)':T.violet.pale||'rgba(123,94,167,.18)'}`,
-          borderRadius: T.r.lg,
-          cursor: 'pointer',
-          fontFamily: T.fontBody,
-          display: 'flex', alignItems: 'center', gap: 14,
-          marginBottom: 20,
-          boxShadow: T.sh.card,
-          transition: 'all .2s',
-        }}
-      >
-        <div style={{
-          width: 44, height: 44, borderRadius: T.r.md, flexShrink: 0,
-          background: T.grad.brand,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 22, boxShadow: T.sh.brand,
-        }}>💰</div>
-        <div style={{ flex: 1, textAlign: 'left' }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 2 }}>Cash Book</div>
-          <div style={{ fontSize: 12, color: T.muted }}>Track personal income & expenses</div>
-        </div>
-        <span style={{ fontSize: 20, color: T.muted }}>›</span>
-      </button>
 
       <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:18}}>
         <StatCard label="Total Revenue"  value={fmt(totalRev)}  color={T.violet.d} accent />
