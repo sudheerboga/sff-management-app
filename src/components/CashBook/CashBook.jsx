@@ -299,6 +299,7 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
     borderRadius: T.r.lg,
     boxShadow: T.sh.card,
   };
+  const isIPhone = /iPhone/i.test(navigator.userAgent);
 
   return (
     <div style={{ position:'fixed', inset:0, background:T.isDark?'rgba(0,0,0,.75)':'rgba(26,22,37,.55)', zIndex:100, overflowY:'auto', fontFamily:T.fontBody }}>
@@ -312,6 +313,7 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           borderBottom: `1px solid ${T.border}`,
           padding: '16px 20px 14px',
+          paddingTop: isIPhone ? '4rem' : 16,
           position: 'sticky', top: 0, zIndex: 30,
         }}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
