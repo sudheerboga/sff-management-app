@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import StatsBar from './StatsBar';
 import OrderCard from './OrderCard';
 import OrderModal from './OrderModal';
-import { SearchBar, FilterChip, EmptyState, Toast } from '../shared';
+import { SearchBar, FilterChip, EmptyState, Toast, ConfirmDialog } from '../shared';
 import { useTheme } from '../../context/ThemeContext';
 import { exportOrdersPDF, exportOrdersExcel } from '../../utils/exportOrders';
 
@@ -45,7 +45,7 @@ function DateRangeBar({ from, to, onChange, T }) {
   );
 }
 
-export default function OrdersTab({ orders, onAdd, onUpdate }) {
+export default function OrdersTab({ orders, onAdd, onUpdate, onDelete }) {
   const { theme: T } = useTheme();
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
@@ -54,6 +54,7 @@ export default function OrdersTab({ orders, onAdd, onUpdate }) {
   const [dateRange, setDateRange] = useState({ from:'', to:'' });
   const [exporting, setExporting] = useState('');
   const [toast, setToast] = useState({ visible:false, msg:'', type:'success' });
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   function showToast(msg,type='success'){ setToast({visible:true,msg,type}); setTimeout(()=>setToast(t=>({...t,visible:false})),2500); }
   function setDate(key, val) { setDateRange(d=>({...d,[key]:val})); }
@@ -81,6 +82,12 @@ export default function OrdersTab({ orders, onAdd, onUpdate }) {
     if (order.id) await onUpdate(order);
     else          await onAdd({...order, id:undefined});
     setModal(null);
+  }
+
+  async function handleDelete(id) {
+    await onDelete(id);
+    setDeleteTarget(null);
+    showToast('Order deleted');
   }
 
   function getExportLabel() {
@@ -114,6 +121,15 @@ export default function OrdersTab({ orders, onAdd, onUpdate }) {
   return (
     <div id='sff-orders-tab' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <Toast message={toast.msg} visible={toast.visible} type={toast.type} />
+      <ConfirmDialog
+        visible={!!deleteTarget}
+        title="Delete Order"
+        message={`Delete order for "${deleteTarget?.name}"? This cannot be undone.`}
+        confirmLabel="Delete"
+        confirmDanger
+        onConfirm={()=>handleDelete(deleteTarget.id)}
+        onCancel={()=>setDeleteTarget(null)}
+      />
 
       {/* Page header */}
       <div className="fade-up" style={{ marginBottom:16, paddingTop:4 }}>
@@ -181,7 +197,7 @@ export default function OrdersTab({ orders, onAdd, onUpdate }) {
       {/* Order list */}
       {filtered.length===0
         ? <EmptyState icon="🪡" title="No orders found" sub="Try adjusting your search or filters" />
-        : filtered.map(o => <OrderCard key={o.id} order={o} onClick={setModal} />)
+        : filtered.map(o => <OrderCard key={o.id} order={o} onClick={setModal} onDelete={o=>setDeleteTarget(o)} />)
       }
 
       {modal!==null && <OrderModal order={modal} onClose={()=>setModal(null)} onSave={handleSave} />}

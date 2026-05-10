@@ -21,7 +21,7 @@ const TAB_ORDER = ['orders', 'add', 'charts', 'measure'];
 function MainApp({ user }) {
   const [tab, setTab] = useState('orders');
   const [showCashBook, setShowCashBook] = useState(false);
-  const { orders, measurements, loading, addOrder, updateOrder, saveMeasurement } = useUserData(user.uid);
+  const { orders, measurements, loading, addOrder, updateOrder, deleteOrder, saveMeasurement, deleteMeasurement } = useUserData(user.uid);
   const { entries, loading: cashLoading, addEntry, updateEntry, deleteEntry } = useCashBook(user.uid);
   const { theme: T } = useTheme();
   const isIPhone = /iPhone/i.test(navigator.userAgent);
@@ -85,10 +85,10 @@ function MainApp({ user }) {
         <AppHeader user={user} />
         <div id="sff-tab-content" style={{ paddingTop: isIPhone ? '8rem' : '5rem', minHeight:'calc(100vh - 60px)' }}>
           {loading ? <LoadingDots /> : <>
-            {tab==='orders'  && <OrdersTab orders={orders} onAdd={addOrder} onUpdate={updateOrder} />}
+            {tab==='orders'  && <OrdersTab orders={orders} onAdd={addOrder} onUpdate={updateOrder} onDelete={deleteOrder} />}
             {tab==='add'     && <AddOrderTab onAdd={o=>{ addOrder(o); setTab('orders'); }} />}
             {tab==='charts'  && <ChartsTab orders={orders} onOpenCashBook={()=>setShowCashBook(true)} />}
-            {tab==='measure' && <MeasurementsTab orders={orders} measurements={measurements} onSaveMeasurement={saveMeasurement} />}
+            {tab==='measure' && <MeasurementsTab orders={orders} measurements={measurements} onSaveMeasurement={saveMeasurement} onDeleteMeasurement={deleteMeasurement} />}
           </>}
         </div>
         <BottomNav active={tab} onChange={setTab} />

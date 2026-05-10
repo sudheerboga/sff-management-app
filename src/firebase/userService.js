@@ -42,3 +42,9 @@ export function subscribeToMeasurements(uid, cb) {
 export async function saveMeasurement(uid, customer, garment, vals) {
   await setDoc(measRef(uid),{[customer]:{[garment]:vals}},{merge:true});
 }
+
+export async function deleteMeasurement(uid, customerName) {
+  // Remove the customer key from the measurements document using FieldValue.delete()
+  const { updateDoc, deleteField } = await import('firebase/firestore');
+  await updateDoc(measRef(uid), { [customerName]: deleteField() });
+}

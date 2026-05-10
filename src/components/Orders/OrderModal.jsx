@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../../context/ThemeContext';
 import { inputBase } from '../../styles/theme';
-import { FocusInput, SelectInput, PrimaryButton, Toast } from '../shared';
+import { FocusInput, SelectInput, PrimaryButton, Toast, UnsavedChangesDialog } from '../shared';
 
 const BLANK = { name: '', mobile: '', date: new Date().toISOString().split('T')[0], ddate: '', additionalInfo: '', total: '', material: '', given: '', status: 'In Progress' };
 const calcBal = (t, g) => Math.max(0, parseFloat(t || 0) - parseFloat(g || 0));
 const calcProf = (t, m) => Math.max(0, parseFloat(t || 0) - parseFloat(m || 0));
 const emptyLine = () => ({ id: Date.now() + Math.random(), name: '', amount: '' });
 
-// Parse itemLines saved from previous edits (stored in order.itemLines array in Firestore)
 function initLines(order) {
   if (order?.itemLines?.length) return order.itemLines.map((l, i) => ({ id: Date.now() + i, name: l.name || '', amount: l.amount || '' }));
   return [emptyLine()];
@@ -16,10 +15,15 @@ function initLines(order) {
 
 export default function OrderModal({ order, onClose, onSave }) {
   const { theme: T, isDark } = useTheme();
-  const [form, setForm] = useState(BLANK);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState({ visible: false, msg: '' });
+  const [form, setForm]           = useState(BLANK);
+  const [saving, setSaving]       = useState(false);
+  const [toast, setToast]         = useState({ visible: false, msg: '' });
   const [itemLines, setItemLines] = useState([emptyLine()]);
+
+  // ── Unsaved changes ───────────────────────────────────────────
+  const [showUnsaved, setShowUnsaved] = useState(false);
+  const originalForm                  = useRef(null);
+  const isDirty = () => originalForm.current && JSON.stringify(form) !== JSON.stringify(originalForm.current);
 
   const upd = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const showToast = msg => { setToast({ visible: true, msg }); setTimeout(() => setToast(t => ({ ...t, visible: false })), 2500); };
@@ -29,8 +33,9 @@ export default function OrderModal({ order, onClose, onSave }) {
       ? { ...BLANK, ...order, additionalInfo: order.additionalInfo || '' }
       : { ...BLANK, date: new Date().toISOString().split('T')[0] };
     setForm(base);
-    // Restore structured item rows from saved itemLines array — never parsed from items string
     setItemLines(initLines(order));
+    // Set after state update so comparison is accurate
+    setTimeout(() => { originalForm.current = base; }, 0);
   }, [order]);
 
   // ── Item lines logic ──────────────────────────────────────────
@@ -45,9 +50,7 @@ export default function OrderModal({ order, onClose, onSave }) {
     recalcTotal(updated);
   }
 
-  function addLine() {
-    setItemLines(prev => [...prev, emptyLine()]);
-  }
+  function addLine() { setItemLines(prev => [...prev, emptyLine()]); }
 
   function removeLine(id) {
     const updated = itemLines.filter(l => l.id !== id);
@@ -61,33 +64,35 @@ export default function OrderModal({ order, onClose, onSave }) {
     if (!form.total) return alert('Enter total amount');
     setSaving(true);
     try {
-      // Save item rows as a clean array — completely separate from items textarea
       const cleanLines = itemLines
         .filter(l => l.name.trim())
         .map(l => ({ name: l.name.trim(), amount: parseFloat(l.amount) || 0 }));
 
       await onSave({
         ...form,
-        // itemLines = structured rows stored as array
-        itemLines: cleanLines,
-        // additionalInfo = notes textarea
+        itemLines:      cleanLines,
         additionalInfo: form.additionalInfo,
-        total: parseFloat(form.total),
-        material: parseFloat(form.material || 0),
-        given: parseFloat(form.given || 0),
-        balance: calcBal(form.total, form.given),
-        profit: calcProf(form.total, form.material),
+        total:          parseFloat(form.total),
+        material:       parseFloat(form.material || 0),
+        given:          parseFloat(form.given || 0),
+        balance:        calcBal(form.total, form.given),
+        profit:         calcProf(form.total, form.material),
       });
       showToast('Order saved successfully!');
       onClose();
     } finally { setSaving(false); }
   }
 
+  function handleClose() {
+    if (isDirty()) setShowUnsaved(true);
+    else onClose();
+  }
+
   // ── Drag-to-close ─────────────────────────────────────────────
-  const sheetRef = useRef(null);
-  const dragStartY = useRef(null);
-  const dragCurrentY = useRef(null);
-  const isDragging = useRef(false);
+  const sheetRef      = useRef(null);
+  const dragStartY    = useRef(null);
+  const dragCurrentY  = useRef(null);
+  const isDragging    = useRef(false);
   const CLOSE_THRESHOLD = 120;
 
   function onDragStart(e) {
@@ -141,19 +146,25 @@ export default function OrderModal({ order, onClose, onSave }) {
     </div>
   );
 
-  const itemTotal = itemLines.reduce((acc, l) => acc + (parseFloat(l.amount) || 0), 0);
+  const itemTotal  = itemLines.reduce((acc, l) => acc + (parseFloat(l.amount) || 0), 0);
   const labelColor = isDark ? T.gold.d : T.violet.d;
-  const sheetBg = T.isDark ? 'rgba(14,11,26,0.98)' : 'rgba(255,255,255,0.98)';
-  const sectionBg = T.isDark ? 'rgba(26,21,48,0.7)' : T.bg;
-  const secBorder = T.isDark ? 'rgba(155,127,212,0.15)' : T.border;
+  const sheetBg    = T.isDark ? 'rgba(14,11,26,0.98)' : 'rgba(255,255,255,0.98)';
+  const sectionBg  = T.isDark ? 'rgba(26,21,48,0.7)' : T.bg;
+  const secBorder  = T.isDark ? 'rgba(155,127,212,0.15)' : T.border;
 
   return (
     <div
       id="sff-order-modal-overlay"
       style={{ position: 'fixed', inset: 0, background: T.isDark ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0.4)', zIndex: 100, display: 'flex', alignItems: 'flex-end', backdropFilter: 'blur(8px)' }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+      onClick={e => { if (e.target === e.currentTarget) handleClose(); }}
     >
       <Toast message={toast.msg} visible={toast.visible} />
+      <UnsavedChangesDialog
+        visible={showUnsaved}
+        onSave={async () => { setShowUnsaved(false); await handleSave(); }}
+        onDiscard={() => { setShowUnsaved(false); onClose(); }}
+        onCancel={() => setShowUnsaved(false)}
+      />
 
       <div
         id="sff-order-modal-sheet"
@@ -169,7 +180,6 @@ export default function OrderModal({ order, onClose, onSave }) {
           willChange: 'transform',
         }}
       >
-        {/* Top accent line */}
         <div style={{ position: 'absolute', top: 0, left: '20%', right: '20%', height: 1, background: T.grad.brand, opacity: .5 }} />
 
         {/* Drag handle */}
@@ -190,11 +200,9 @@ export default function OrderModal({ order, onClose, onSave }) {
             <div style={{ fontFamily: T.fontDisplay, fontSize: 21, fontWeight: 600, color: T.text, letterSpacing: '-.01em' }}>
               {order?.id ? 'Edit Order' : 'New Order'}
             </div>
-            {order?.sffId && (
-              <div style={{ fontSize: 11, color: T.muted, marginTop: 2, fontFamily: 'monospace' }}>{order.sffId}</div>
-            )}
+            {order?.sffId && <div style={{ fontSize: 11, color: T.muted, marginTop: 2, fontFamily: 'monospace' }}>{order.sffId}</div>}
           </div>
-          <button onClick={onClose} style={{ background: T.isDark ? 'rgba(255,255,255,0.06)' : T.bg2, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: '50%', fontSize: 18, cursor: 'pointer', color: T.muted, display: 'flex', justifyContent: 'center', padding: '2px' }}>×</button>
+          <button onClick={handleClose} style={{ background: T.isDark ? 'rgba(255,255,255,0.06)' : T.bg2, border: `1px solid ${T.border}`, width: 34, height: 34, borderRadius: '50%', fontSize: 18, cursor: 'pointer', color: T.muted, display: 'flex', justifyContent: 'center', padding: '2px' }}>×</button>
         </div>
 
         {/* ── Customer section ──────────────────────────────────── */}
@@ -266,7 +274,7 @@ export default function OrderModal({ order, onClose, onSave }) {
             <span style={{ fontSize: 16 }}>+</span> Add Item
           </button>
 
-          {/* Additional Info textarea — separate new field */}
+          {/* Additional Info */}
           <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Additional Info (optional)</label>
           <textarea
             value={form.additionalInfo}
@@ -276,16 +284,18 @@ export default function OrderModal({ order, onClose, onSave }) {
             style={{ ...inputBase(false, T), width: '100%', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
           />
 
-          {/* Old Stitching Items */}
-          {form.items && <div>
-            <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Stitching Items</label>
-            <textarea
-              value={form.items}
-              onChange={e => upd('items', e.target.value)}
-              placeholder=""
-              rows={3}
-              style={{ ...inputBase(false, T), width: '100%', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
-            /></div>}
+          {/* Legacy Stitching Items — show only if existing order had them */}
+          {form.items ? (
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Stitching Items (legacy)</label>
+              <textarea
+                value={form.items}
+                onChange={e => upd('items', e.target.value)}
+                rows={3}
+                style={{ ...inputBase(false, T), width: '100%', resize: 'vertical', lineHeight: 1.5, boxSizing: 'border-box' }}
+              />
+            </div>
+          ) : null}
         </div>
 
         {/* ── Payment section ───────────────────────────────────── */}
@@ -294,9 +304,9 @@ export default function OrderModal({ order, onClose, onSave }) {
             <div style={{ width: 14, height: 1, background: isDark ? T.grad.gold : T.grad.brand, opacity: .6 }} />Payment Details
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <FocusInput label="Total Amount *" value={form.total} onChange={v => upd('total', v)} type="number" prefix="₹" />
-            <FocusInput label="Material Cost" value={form.material} onChange={v => upd('material', v)} type="number" prefix="₹" />
-            <FocusInput label="Amount Given" value={form.given} onChange={v => upd('given', v)} type="number" prefix="₹" />
+            <FocusInput label="Total Amount *" value={form.total}    onChange={v => upd('total', v)}    type="number" prefix="₹" />
+            <FocusInput label="Material Cost"  value={form.material} onChange={v => upd('material', v)} type="number" prefix="₹" />
+            <FocusInput label="Amount Given"   value={form.given}    onChange={v => upd('given', v)}    type="number" prefix="₹" />
             <SelectInput label="Status" value={form.status} onChange={v => upd('status', v)} options={['In Progress', 'Delivered']} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, background: T.isDark ? 'rgba(255,255,255,0.03)' : T.bg2, borderRadius: T.r.md, padding: '14px 15px', border: `1px solid ${T.border}`, marginTop: 10 }}>

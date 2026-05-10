@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Avatar, Toast, PrimaryButton } from '../shared';
+import React, { useState, useEffect, useRef } from 'react';
+import { Avatar, Toast, PrimaryButton, UnsavedChangesDialog } from '../shared';
 import { GARMENT_FIELDS } from '../../data/garments';
 import { useTheme } from '../../context/ThemeContext';
 import { inputBase } from '../../styles/theme';
@@ -7,32 +7,71 @@ import { exportMeasurementsPDF, exportMeasurementsExcel } from '../../utils/expo
 
 const GARMENTS = Object.keys(GARMENT_FIELDS);
 
-export default function MeasurementForm({ customerName, customerPhone, measurements, onSave, onBack }) {
+export default function MeasurementForm({ customerName, customerPhone: initialPhone, measurements, onSave, onBack }) {
   const { theme: T, isDark } = useTheme();
-  const [garment, setGarment]     = useState('blouse');
-  const [vals, setVals]           = useState({});
+  const [garment, setGarment]           = useState('blouse');
+  const [vals, setVals]                 = useState({});
   const [customFields, setCustomFields] = useState([]);
-  const [newLabel, setNewLabel]   = useState('');
-  const [addMode, setAddMode]     = useState(false);
-  const [saving, setSaving]       = useState(false);
-  const [exporting, setExporting] = useState('');
-  const [toast, setToast]         = useState({ visible:false, msg:'', type:'success' });
+  const [newLabel, setNewLabel]         = useState('');
+  const [addMode, setAddMode]           = useState(false);
+  const [saving, setSaving]             = useState(false);
+  const [exporting, setExporting]       = useState('');
+  const [toast, setToast]               = useState({ visible:false, msg:'', type:'success' });
+
+  // Phone edit state
+  const [phone, setPhone]               = useState(initialPhone || '');
+  const [phoneEditMode, setPhoneEditMode] = useState(false);
+
+  // Unsaved changes tracking
+  const [showUnsaved, setShowUnsaved]   = useState(false);
+  const originalVals                    = useRef({});
+  const isDirty                         = useRef(false);
 
   useEffect(() => {
     const data = measurements?.[garment]||{};
     const stdKeys = new Set(GARMENT_FIELDS[garment].map(f=>f.key));
-    const customEntries = Object.entries(data).filter(([k])=>!stdKeys.has(k));
+    const customEntries = Object.entries(data).filter(([k])=>!stdKeys.has(k) && k!=='__phone');
     setVals(data);
+    originalVals.current = data;
+    isDirty.current = false;
     setCustomFields(customEntries.map(([k])=>({ key:k, label:k.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase()) })));
   }, [garment, measurements]);
 
+  // Track if phone changed
+  const phoneChanged = phone !== (initialPhone || '');
+
   function showToast(msg,type='success') { setToast({visible:true,msg,type}); setTimeout(()=>setToast(t=>({...t,visible:false})),2500); }
+
+  function handleValsChange(newVals) {
+    setVals(newVals);
+    isDirty.current = JSON.stringify(newVals) !== JSON.stringify(originalVals.current);
+  }
 
   async function handleSave() {
     setSaving(true);
-    try { await onSave(customerName,garment,vals); showToast(`${garment} measurements saved!`); }
-    catch(e) { showToast('Save failed. Try again.','error'); }
+    try {
+      // Save phone as __phone meta key inside measurements
+      const valsToSave = phoneChanged ? { ...vals, __phone: phone } : vals;
+      await onSave(customerName, garment, valsToSave);
+      originalVals.current = valsToSave;
+      isDirty.current = false;
+      showToast(`${garment} measurements saved!`);
+    } catch(e) { showToast('Save failed. Try again.','error'); }
     finally { setSaving(false); }
+  }
+
+  function handleBackClick() {
+    if (isDirty.current || phoneChanged) {
+      setShowUnsaved(true);
+    } else {
+      onBack();
+    }
+  }
+
+  async function handleSaveAndBack() {
+    setShowUnsaved(false);
+    await handleSave();
+    onBack();
   }
 
   function addCustomField() {
@@ -41,14 +80,14 @@ export default function MeasurementForm({ customerName, customerPhone, measureme
     if(!key||customFields.find(f=>f.key===key)) return;
     setCustomFields(prev=>[...prev,{key,label}]); setNewLabel(''); setAddMode(false);
   }
-  function removeCustomField(key) { setCustomFields(prev=>prev.filter(f=>f.key!==key)); setVals(v=>{const n={...v};delete n[key];return n;}); }
+  function removeCustomField(key) { setCustomFields(prev=>prev.filter(f=>f.key!==key)); handleValsChange((()=>{ const n={...vals}; delete n[key]; return n; })()); }
 
   async function handlePDF() { setExporting('pdf'); try{await exportMeasurementsPDF(customerName,measurements||{});showToast('PDF downloaded!');}catch{showToast('PDF failed','error');}finally{setExporting('');} }
   async function handleExcel() { setExporting('xlsx'); try{await exportMeasurementsExcel(customerName,measurements||{});showToast('Excel downloaded!');}catch{showToast('Excel failed','error');}finally{setExporting('');} }
 
   const fields = GARMENT_FIELDS[garment]||[];
-  const filledCount = Object.values(vals).filter(v=>v!==''&&v!=null).length;
-  const hasData = g => { const d=measurements?.[g]||{}; return Object.values(d).some(v=>v!==''&&v!=null); };
+  const filledCount = Object.entries(vals).filter(([k,v])=>k!=='__phone'&&v!==''&&v!=null).length;
+  const hasData = g => { const d=measurements?.[g]||{}; return Object.entries(d).some(([k,v])=>k!=='__phone'&&v!==''&&v!=null); };
 
   const cardBg     = isDark?'rgba(26,21,48,0.8)':T.card;
   const cardBorder = isDark?'rgba(155,127,212,0.2)':T.border;
@@ -57,28 +96,63 @@ export default function MeasurementForm({ customerName, customerPhone, measureme
   return (
     <div id='sff-measurement-form' style={{ padding:`0 ${T.sp.page}px 100px`, fontFamily:T.fontBody }}>
       <Toast message={toast.msg} visible={toast.visible} type={toast.type} />
+      <UnsavedChangesDialog
+        visible={showUnsaved}
+        onSave={handleSaveAndBack}
+        onDiscard={()=>{ setShowUnsaved(false); onBack(); }}
+        onCancel={()=>setShowUnsaved(false)}
+      />
 
+      {/* Top bar */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, paddingTop:4 }}>
-        <button onClick={onBack} style={{ background:isDark?'rgba(255,255,255,0.05)':T.bg2, border:`1px solid ${T.border}`, borderRadius:T.r.md, padding:'8px 14px', fontSize:13, fontWeight:600, color:T.violet.d, cursor:'pointer', fontFamily:T.fontBody, display:'flex', alignItems:'center', gap:6 }}>← Back</button>
+        <button onClick={handleBackClick} style={{ background:isDark?'rgba(255,255,255,0.05)':T.bg2, border:`1px solid ${T.border}`, borderRadius:T.r.md, padding:'8px 14px', fontSize:13, fontWeight:600, color:T.violet.d, cursor:'pointer', fontFamily:T.fontBody, display:'flex', alignItems:'center', gap:6 }}>← Back</button>
         <div style={{ display:'flex', gap:8 }}>
           <button onClick={handlePDF} disabled={!!exporting} style={{ padding:'8px 13px', borderRadius:T.r.md, fontSize:12, fontWeight:700, background:T.danger.bg, color:T.danger.text, border:`1px solid ${T.danger.border}`, cursor:'pointer', fontFamily:T.fontBody }}>{exporting==='pdf'?'…':'📄 PDF'}</button>
           <button onClick={handleExcel} disabled={!!exporting} style={{ padding:'8px 13px', borderRadius:T.r.md, fontSize:12, fontWeight:700, background:T.success.bg, color:T.success.text, border:`1px solid ${T.success.border}`, cursor:'pointer', fontFamily:T.fontBody }}>{exporting==='xlsx'?'…':'📊 Excel'}</button>
         </div>
       </div>
 
-      <div className="fade-up" style={{ display:'flex', alignItems:'center', gap:14, background:cardBg, backdropFilter:isDark?'blur(16px)':'none', border:`1px solid ${cardBorder}`, borderRadius:T.r.lg, padding:16, marginBottom:18, boxShadow:T.sh.card, position:'relative', overflow:'hidden' }}>
+      {/* Customer card */}
+      <div className="fade-up" style={{ background:cardBg, backdropFilter:isDark?'blur(16px)':'none', border:`1px solid ${cardBorder}`, borderRadius:T.r.lg, padding:16, marginBottom:18, boxShadow:T.sh.card, position:'relative', overflow:'hidden' }}>
         <div style={{ position:'absolute', inset:0, background:T.grad.card, pointerEvents:'none', borderRadius:'inherit' }} />
-        <Avatar name={customerName} size={52} />
-        <div style={{ flex:1, position:'relative' }}>
-          <div style={{ fontFamily:T.fontDisplay, fontSize:19, fontWeight:600, color:T.text, letterSpacing:'-.01em' }}>{customerName}</div>
-          <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>{customerPhone ? `📞 +91 ${customerPhone}` : 'Measurement profile'}</div>
-        </div>
-        {filledCount>0 && (
-          <div style={{ textAlign:'center', background:isDark?'rgba(155,127,212,0.15)':T.violet.pale||'#f3eff9', borderRadius:T.r.md, padding:'9px 13px', border:`1px solid ${isDark?'rgba(155,127,212,0.2)':T.violet.d+'33'}`, position:'relative' }}>
-            <div style={{ fontSize:20, fontWeight:800, color:T.violet.d }}>{filledCount}</div>
-            <div style={{ fontSize:10, color:T.violet.d, fontWeight:600, opacity:.7 }}>fields</div>
+        <div style={{ display:'flex', alignItems:'center', gap:14, position:'relative' }}>
+          <Avatar name={customerName} size={52} />
+          <div style={{ flex:1 }}>
+            <div style={{ fontFamily:T.fontDisplay, fontSize:19, fontWeight:600, color:T.text, letterSpacing:'-.01em' }}>{customerName}</div>
+
+            {/* Phone — inline edit */}
+            {phoneEditMode ? (
+              <div style={{ display:'flex', gap:6, marginTop:6, alignItems:'center' }}>
+                <div style={{ display:'flex', alignItems:'center', border:`1.5px solid ${T.violet.d}`, borderRadius:T.r.md, background:isDark?'rgba(155,127,212,0.08)':T.bg, overflow:'hidden', boxShadow:`0 0 0 3px ${isDark?'rgba(155,127,212,0.12)':'rgba(123,94,167,0.1)'}` }}>
+                  <span style={{ padding:'0 6px 0 10px', fontSize:12, color:T.muted, whiteSpace:'nowrap' }}>🇮🇳 +91</span>
+                  <input
+                    autoFocus
+                    type="tel"
+                    value={phone}
+                    onChange={e=>setPhone(e.target.value.replace(/\D/g,'').slice(0,10))}
+                    onKeyDown={e=>{ if(e.key==='Enter'||e.key==='Escape') setPhoneEditMode(false); }}
+                    placeholder="Phone number"
+                    style={{ padding:'7px 8px 7px 4px', border:'none', fontSize:13, fontFamily:T.fontBody, background:'transparent', color:T.text, outline:'none', WebkitTextFillColor:T.text, letterSpacing:1, width:130 }}
+                  />
+                </div>
+                <button onClick={()=>setPhoneEditMode(false)} style={{ padding:'7px 12px', background:T.grad.brand, color:'#fff', border:'none', borderRadius:T.r.md, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:T.fontBody }}>✓</button>
+              </div>
+            ) : (
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginTop:4 }}>
+                <span style={{ fontSize:12, color:T.muted }}>{phone ? `📞 +91 ${phone}` : 'No phone number'}</span>
+                <button onClick={()=>setPhoneEditMode(true)} style={{ fontSize:10, fontWeight:700, color:T.violet.d, background:isDark?'rgba(155,127,212,0.12)':'#f3eff9', border:`1px solid ${isDark?'rgba(155,127,212,0.25)':T.violet.d+'33'}`, borderRadius:T.r.pill, padding:'2px 8px', cursor:'pointer', fontFamily:T.fontBody }}>
+                  {phone ? 'Edit' : '+ Add'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
+          {filledCount>0 && (
+            <div style={{ textAlign:'center', background:isDark?'rgba(155,127,212,0.15)':T.violet.pale||'#f3eff9', borderRadius:T.r.md, padding:'9px 13px', border:`1px solid ${isDark?'rgba(155,127,212,0.2)':T.violet.d+'33'}`, position:'relative' }}>
+              <div style={{ fontSize:20, fontWeight:800, color:T.violet.d }}>{filledCount}</div>
+              <div style={{ fontSize:10, color:T.violet.d, fontWeight:600, opacity:.7 }}>fields</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Garment tabs */}
@@ -100,7 +174,7 @@ export default function MeasurementForm({ customerName, customerPhone, measureme
       {/* Standard fields */}
       <div className="stagger" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
         {fields.map(f => (
-          <MeasureField key={f.key} label={f.label} value={vals[f.key]||''} onChange={v=>setVals(p=>({...p,[f.key]:v}))} T={T} isDark={isDark} />
+          <MeasureField key={f.key} label={f.label} value={vals[f.key]||''} onChange={v=>handleValsChange({...vals,[f.key]:v})} T={T} isDark={isDark} />
         ))}
       </div>
 
@@ -112,7 +186,7 @@ export default function MeasurementForm({ customerName, customerPhone, measureme
           </div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:12 }}>
             {customFields.map(cf => (
-              <MeasureField key={cf.key} label={cf.label} value={vals[cf.key]||''} onChange={v=>setVals(p=>({...p,[cf.key]:v}))} removable onRemove={()=>removeCustomField(cf.key)} T={T} isDark={isDark} />
+              <MeasureField key={cf.key} label={cf.label} value={vals[cf.key]||''} onChange={v=>handleValsChange({...vals,[cf.key]:v})} removable onRemove={()=>removeCustomField(cf.key)} T={T} isDark={isDark} />
             ))}
           </div>
         </>

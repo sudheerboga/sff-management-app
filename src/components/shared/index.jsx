@@ -264,3 +264,40 @@ export function SegmentControl({ options, value, onChange }) {
     </div>
   );
 }
+
+// ── ConfirmDialog ─────────────────────────────────────────────────────────────
+export function ConfirmDialog({ visible, title, message, confirmLabel='Delete', confirmDanger=true, onConfirm, onCancel }) {
+  const T = useT();
+  if (!visible) return null;
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 24px', backdropFilter:'blur(6px)' }}>
+      <div className="scale-in" style={{ background:T.isDark?'rgba(20,16,38,0.98)':'#fff', border:`1px solid ${T.isDark?'rgba(155,127,212,0.25)':T.border}`, borderRadius:T.r.xl, padding:'28px 24px', width:'100%', maxWidth:340, boxShadow:T.sh.lg, fontFamily:T.fontBody }}>
+        <div style={{ fontSize:18, fontWeight:700, color:T.text, marginBottom:8, fontFamily:T.fontDisplay }}>{title}</div>
+        <div style={{ fontSize:13, color:T.muted, lineHeight:1.6, marginBottom:24 }}>{message}</div>
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={onCancel} style={{ flex:1, padding:'12px 0', borderRadius:T.r.md, fontSize:13, fontWeight:600, background:T.isDark?'rgba(255,255,255,0.05)':T.bg2, color:T.text2, border:`1px solid ${T.border}`, cursor:'pointer', fontFamily:T.fontBody }}>Cancel</button>
+          <button onClick={onConfirm} style={{ flex:1, padding:'12px 0', borderRadius:T.r.md, fontSize:13, fontWeight:700, background:confirmDanger?T.danger.bg:T.grad.brand, color:confirmDanger?T.danger.text:'#fff', border:confirmDanger?`1px solid ${T.danger.border}`:'none', cursor:'pointer', fontFamily:T.fontBody, boxShadow:confirmDanger?'none':T.sh.brand }}>{confirmLabel}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── UnsavedChangesDialog ──────────────────────────────────────────────────────
+export function UnsavedChangesDialog({ visible, onSave, onDiscard, onCancel }) {
+  const T = useT();
+  if (!visible) return null;
+  return (
+    <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:300, display:'flex', alignItems:'center', justifyContent:'center', padding:'0 24px', backdropFilter:'blur(6px)' }}>
+      <div className="scale-in" style={{ background:T.isDark?'rgba(20,16,38,0.98)':'#fff', border:`1px solid ${T.isDark?'rgba(155,127,212,0.25)':T.border}`, borderRadius:T.r.xl, padding:'28px 24px', width:'100%', maxWidth:340, boxShadow:T.sh.lg, fontFamily:T.fontBody }}>
+        <div style={{ fontSize:18, fontWeight:700, color:T.text, marginBottom:8, fontFamily:T.fontDisplay }}>Unsaved Changes</div>
+        <div style={{ fontSize:13, color:T.muted, lineHeight:1.6, marginBottom:24 }}>You have unsaved changes. What would you like to do?</div>
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <button onClick={onSave} style={{ width:'100%', padding:'13px 0', borderRadius:T.r.md, fontSize:13, fontWeight:700, background:T.grad.brand, color:'#fff', border:'none', cursor:'pointer', fontFamily:T.fontBody, boxShadow:T.sh.brand }}>✦ Save & Go Back</button>
+          <button onClick={onDiscard} style={{ width:'100%', padding:'12px 0', borderRadius:T.r.md, fontSize:13, fontWeight:600, background:T.isDark?'rgba(248,113,113,0.1)':'#fdeaea', color:T.danger.text, border:`1px solid ${T.danger.border}`, cursor:'pointer', fontFamily:T.fontBody }}>Discard Changes</button>
+          <button onClick={onCancel} style={{ width:'100%', padding:'12px 0', borderRadius:T.r.md, fontSize:13, fontWeight:600, background:T.isDark?'rgba(255,255,255,0.05)':T.bg2, color:T.muted, border:`1px solid ${T.border}`, cursor:'pointer', fontFamily:T.fontBody }}>Keep Editing</button>
+        </div>
+      </div>
+    </div>
+  );
+}
