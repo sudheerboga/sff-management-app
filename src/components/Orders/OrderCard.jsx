@@ -61,12 +61,21 @@ export default function OrderCard({ order, onClick }) {
 
         {/* Items */}
         <div onClick={() => onClick(order)} style={{
-          fontSize: 13, color: T.text2, lineHeight: 1.65, marginBottom: 13, paddingLeft: 12,
+          fontSize: 12, color: T.text2, lineHeight: 1.4, marginBottom: 13, paddingLeft: 12,
           borderLeft: `1.5px solid`,
           borderImage: 'linear-gradient(178deg, rgb(201 107 154 / 37%), rgb(123 94 167 / 25%)) 1 / 1 / 0 stretch',
           borderImageSlice: 1, fontStyle: 'italic', position: 'relative'
         }}>
-          {order.items}
+          {order.itemLines?.map((line, idx) => (
+            <div key={line.id} style={{ marginBottom: 0 }}>
+              {line.name} - ₹{line.amount}
+            </div>
+          ))}
+          {(order.items || '').split(/[,\n]/).map(i => i.trim()).filter(Boolean).map((i, idx) => (
+            <div key={idx} style={{ marginBottom: 0 }}>
+              {i}
+            </div>
+          ))}
         </div>
 
         {/* Footer */}

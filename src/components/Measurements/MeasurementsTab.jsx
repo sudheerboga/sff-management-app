@@ -8,17 +8,32 @@ const GARMENTS = Object.keys(GARMENT_FIELDS);
 
 export default function MeasurementsTab({ orders, measurements, onSaveMeasurement }) {
   const { theme: T, isDark } = useTheme();
-  const [search, setSearch]   = useState('');
+  const [search, setSearch]     = useState('');
   const [selected, setSelected] = useState(null);
   const [newName, setNewName]   = useState('');
+  const [newPhone, setNewPhone] = useState('');
   const [addMode, setAddMode]   = useState(false);
 
   const allNames = [...new Set([...Object.keys(measurements)])].sort();
   const filtered = allNames.filter(n=>n.toLowerCase().includes(search.toLowerCase()));
 
-  function handleAdd() { const t=newName.trim(); if(!t) return; setSelected(t); setNewName(''); setAddMode(false); }
+  function handleAdd() {
+    const t = newName.trim();
+    if (!t) return;
+    setSelected({ name: t, phone: newPhone.trim() });
+    setNewName(''); setNewPhone(''); setAddMode(false);
+  }
 
-  if (selected) return <MeasurementForm customerName={selected} measurements={measurements[selected]} onSave={onSaveMeasurement} onBack={()=>setSelected(null)} />;
+  const selectedName = selected?.name || selected;
+  if (selected) return (
+    <MeasurementForm
+      customerName={selectedName}
+      customerPhone={selected?.phone}
+      measurements={measurements[selectedName]}
+      onSave={onSaveMeasurement}
+      onBack={()=>setSelected(null)}
+    />
+  );
 
   const cardBg     = isDark ? 'rgba(26,21,48,0.8)' : T.card;
   const cardBorder = isDark ? 'rgba(155,127,212,0.12)' : T.border;
@@ -34,12 +49,33 @@ export default function MeasurementsTab({ orders, measurements, onSaveMeasuremen
 
       {addMode ? (
         <div style={{ background:cardBg, border:`1px solid ${isDark?'rgba(155,127,212,0.25)':T.border}`, borderRadius:T.r.lg, padding:14, marginBottom:14, boxShadow:T.sh.xs }}>
-          <div style={{ fontSize:10, color:isDark?T.gold.d:T.violet.d, fontWeight:700, marginBottom:8, textTransform:'uppercase', letterSpacing:'.09em' }}>New customer name</div>
+          <div style={{ fontSize:10, color:isDark?T.gold.d:T.violet.d, fontWeight:700, marginBottom:10, textTransform:'uppercase', letterSpacing:'.09em' }}>New customer</div>
+          {/* Name row */}
+          <div style={{ display:'flex', gap:8, marginBottom:8 }}>
+            <input
+              autoFocus
+              value={newName}
+              onChange={e=>setNewName(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&handleAdd()}
+              placeholder="Customer name e.g. Meena"
+              style={{ flex:1, padding:'11px 14px', border:`1.5px solid ${T.violet.d}`, borderRadius:T.r.md, fontSize:14, fontFamily:T.fontBody, background:isDark?'rgba(155,127,212,0.08)':T.bg, color:T.text, outline:'none', boxShadow:`0 0 0 3px ${isDark?'rgba(155,127,212,0.12)':'rgba(123,94,167,0.1)'}`, WebkitTextFillColor:T.text }}
+            />
+          </div>
+          {/* Phone row */}
           <div style={{ display:'flex', gap:8 }}>
-            <input autoFocus value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAdd()} placeholder="e.g. Meena"
-              style={{ flex:1, padding:'11px 14px', border:`1.5px solid ${T.violet.d}`, borderRadius:T.r.md, fontSize:14, fontFamily:T.fontBody, background:isDark?'rgba(155,127,212,0.08)':T.bg, color:T.text, outline:'none', boxShadow:`0 0 0 3px ${isDark?'rgba(155,127,212,0.12)':'rgba(123,94,167,0.1)'}`, WebkitTextFillColor:T.text }} />
+            <div style={{ display:'flex', alignItems:'center', flex:1, border:`1.5px solid ${T.border}`, borderRadius:T.r.md, background:isDark?'rgba(255,255,255,0.04)':T.bg, overflow:'hidden' }}>
+              <span style={{ padding:'0 8px 0 12px', fontSize:13, color:T.muted, whiteSpace:'nowrap', borderRight:`1px solid ${T.border}`, marginRight:8, lineHeight:'44px' }}>🇮🇳 +91</span>
+              <input
+                type="tel"
+                value={newPhone}
+                onChange={e=>setNewPhone(e.target.value.replace(/\D/g,'').slice(0,10))}
+                onKeyDown={e=>e.key==='Enter'&&handleAdd()}
+                placeholder="Phone number (optional)"
+                style={{ flex:1, padding:'11px 8px 11px 4px', border:'none', fontSize:14, fontFamily:T.fontBody, background:'transparent', color:T.text, outline:'none', WebkitTextFillColor:T.text, letterSpacing:1 }}
+              />
+            </div>
             <button onClick={handleAdd} style={{ padding:'11px 16px', background:T.grad.brand, color:'#fff', border:'none', borderRadius:T.r.md, fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:T.fontBody, boxShadow:T.sh.brand }}>Go</button>
-            <button onClick={()=>setAddMode(false)} style={{ padding:'11px 14px', background:isDark?'rgba(255,255,255,0.05)':T.bg2, color:T.muted, border:`1px solid ${T.border}`, borderRadius:T.r.md, fontSize:13, cursor:'pointer', fontFamily:T.fontBody }}>✕</button>
+            <button onClick={()=>{setAddMode(false);setNewName('');setNewPhone('');}} style={{ padding:'11px 14px', background:isDark?'rgba(255,255,255,0.05)':T.bg2, color:T.muted, border:`1px solid ${T.border}`, borderRadius:T.r.md, fontSize:13, cursor:'pointer', fontFamily:T.fontBody }}>✕</button>
           </div>
         </div>
       ) : (

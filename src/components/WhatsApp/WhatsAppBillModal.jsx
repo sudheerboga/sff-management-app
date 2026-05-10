@@ -40,7 +40,7 @@ export default function WhatsAppBillModal({ order, onClose }) {
               <div style={{ fontSize:11, color:T.muted }}>for {order.name}{order.sffId?` · ${order.sffId}`:''}</div>
             </div>
           </div>
-          <button onClick={onClose} style={{ background:T.isDark?'rgba(255,255,255,0.06)':T.bg2, border:`1px solid ${T.border}`, width:32, height:32, borderRadius:'50%', fontSize:18, cursor:'pointer', color:T.muted, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+          <button onClick={onClose} style={{ background:T.isDark?'rgba(255,255,255,0.06)':T.bg2, border:`1px solid ${T.border}`, width:32, height:32, borderRadius:'50%', fontSize:18, cursor:'pointer', color:T.muted, display:'flex', justifyContent:'center'}}>×</button>
         </div>
 
         {/* Preview */}

@@ -2,6 +2,11 @@ export function generateBillMessage(order) {
   const fmt = n => `₹${Number(n||0).toLocaleString('en-IN')}`;
   const fmtDate = d => { try { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); } catch { return d||''; } };
   const items = (order.items||'').split(/[,\n]/).map(i=>i.trim()).filter(Boolean).map(i=>`• ${i}`).join('\n');
+  const itemLines = (order.itemLines || [])
+  .filter(i => i?.name)
+  .map(i => `• ${i.name} - ₹${i.amount || 0}`)
+  .join('\n');
+
   return [
     `✨ *Sri Fashion Fusion* ✨`,`━━━━━━━━━━━━━━━`,``,
     `👤 *${order.name}*`,
@@ -9,7 +14,7 @@ export function generateBillMessage(order) {
     // order.mobile ? `📱 +91 ${order.mobile}` : null,
     // order.date   ? `📅 ${fmtDate(order.date)}` : null,
     // order.ddate  ? `🚚 Delivery: ${fmtDate(order.ddate)}` : null,
-    ``,`*Order Details* 👗`,`━━━━━━━━━━━━━━━`,items,``,
+    ``,`*Order Details* 👗`,`━━━━━━━━━━━━━━━`,items, itemLines ,``,
     `*Payment* 💰`,`━━━━━━━━━━━━━━━`,
     `Total   : *${fmt(order.total)}*`,
     order.given>0   ? `Paid    : ${fmt(order.given)}`   : null,

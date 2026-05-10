@@ -67,8 +67,8 @@ function MainApp({ user }) {
         boxShadow: T.isDark ? '0 0 80px rgba(0,0,0,.8)' : '0 0 60px rgba(26,22,37,.15)',
         overflow:'hidden', transition:'background .3s',
       }}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      // onTouchStart={handleTouchStart}
+      // onTouchEnd={handleTouchEnd}
     >
       {/* Ambient mesh */}
       <div id="sff-bg-mesh" style={{ position:'fixed', inset:0, maxWidth:430, pointerEvents:'none', zIndex:0, background:T.grad.mesh }} />

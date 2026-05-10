@@ -258,6 +258,7 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
   const { theme: T } = useTheme();
   const [search,    setSearch]    = useState('');
   const [filter,    setFilter]    = useState('all'); // all | in | out
+  const [monthFilter, setMonthFilter] = useState('all'); // all | YYYY-MM
   const [showAdd,   setShowAdd]   = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [toast,     setToast]     = useState({ visible:false, msg:'' });
@@ -277,12 +278,23 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
     showToast('Entry deleted');
   }
 
+  // Build month options from entries
+  const monthOptions = React.useMemo(() => {
+    const months = [...new Set(entries.map(e => e.date?.slice(0,7)).filter(Boolean))].sort().reverse();
+    return months.map(m => {
+      const [y, mo] = m.split('-');
+      const label = new Date(Number(y), Number(mo)-1, 1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+      return { value: m, label };
+    });
+  }, [entries]);
+
   // Filtered entries
   const filtered = entries.filter(e => {
     const matchSearch = e.label?.toLowerCase().includes(search.toLowerCase()) ||
                         String(e.amount).includes(search);
     const matchFilter = filter==='all' || e.type===filter;
-    return matchSearch && matchFilter;
+    const matchMonth  = monthFilter==='all' || e.date?.startsWith(monthFilter);
+    return matchSearch && matchFilter && matchMonth;
   });
 
   // Totals (always from ALL entries, not filtered)
@@ -426,8 +438,8 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
             />
           </div>
 
-          {/* ── Filter chips ───────────────────────────────────── */}
-          <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+          {/* ── Filter chips + Month dropdown ───────────────────── */}
+          <div style={{ display:'flex', gap:8, marginBottom:10, flexWrap:'wrap', alignItems:'center' }}>
             {[['all','All'],['in','Income ↑'],['out','Expenses ↓']].map(([val,lbl])=>(
               <button key={val} onClick={()=>setFilter(val)} style={{
                 padding:'6px 14px', borderRadius:T.r.pill, fontSize:12, fontWeight:600,
@@ -440,6 +452,32 @@ export default function CashBook({ entries, loading, onAdd, onUpdate, onDelete, 
               }}>{lbl}</button>
             ))}
           </div>
+          {/* ── Month filter dropdown ───────────────────────────── */}
+          {monthOptions.length > 0 && (
+            <div style={{ marginBottom:14, position:'relative' }}>
+              <select
+                value={monthFilter}
+                onChange={e=>setMonthFilter(e.target.value)}
+                style={{
+                  width:'100%', padding:'9px 36px 9px 12px',
+                  border:`1.5px solid ${monthFilter!=='all'?T.violet.d:T.border}`,
+                  borderRadius:T.r.md, fontSize:13, fontFamily:T.fontBody,
+                  background:T.isDark?'rgba(155,127,212,0.08)':T.card,
+                  color:T.text, outline:'none', cursor:'pointer',
+                  WebkitTextFillColor:T.text,
+                  appearance:'none', WebkitAppearance:'none',
+                  boxShadow: monthFilter!=='all'?`0 0 0 3px ${T.isDark?'rgba(155,127,212,0.15)':'rgba(123,94,167,0.1)'}`:T.sh.xs,
+                  transition:'all .2s',
+                }}
+              >
+                <option value="all">📅 All Months</option>
+                {monthOptions.map(m=>(
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <div style={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', pointerEvents:'none', color:T.muted, fontSize:12 }}>▾</div>
+            </div>
+          )}
 
           {/* ── Entry count ─────────────────────────────────────── */}
           {filtered.length > 0 && (

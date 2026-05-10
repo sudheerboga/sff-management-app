@@ -3,7 +3,7 @@
 
 // ── Light palette ────────────────────────────────────────────────
 export const LIGHT = {
-  bg: '#f9f5f0',
+  bg: '#fdfaf7',
   bg2: '#f0ebe4',
   bg3: '#e8e2da',
   card: '#ffffff',

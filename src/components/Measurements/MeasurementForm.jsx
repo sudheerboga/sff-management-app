@@ -7,7 +7,7 @@ import { exportMeasurementsPDF, exportMeasurementsExcel } from '../../utils/expo
 
 const GARMENTS = Object.keys(GARMENT_FIELDS);
 
-export default function MeasurementForm({ customerName, measurements, onSave, onBack }) {
+export default function MeasurementForm({ customerName, customerPhone, measurements, onSave, onBack }) {
   const { theme: T, isDark } = useTheme();
   const [garment, setGarment]     = useState('blouse');
   const [vals, setVals]           = useState({});
@@ -71,7 +71,7 @@ export default function MeasurementForm({ customerName, measurements, onSave, on
         <Avatar name={customerName} size={52} />
         <div style={{ flex:1, position:'relative' }}>
           <div style={{ fontFamily:T.fontDisplay, fontSize:19, fontWeight:600, color:T.text, letterSpacing:'-.01em' }}>{customerName}</div>
-          <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>Measurement profile</div>
+          <div style={{ fontSize:11, color:T.muted, marginTop:3 }}>{customerPhone ? `📞 +91 ${customerPhone}` : 'Measurement profile'}</div>
         </div>
         {filledCount>0 && (
           <div style={{ textAlign:'center', background:isDark?'rgba(155,127,212,0.15)':T.violet.pale||'#f3eff9', borderRadius:T.r.md, padding:'9px 13px', border:`1px solid ${isDark?'rgba(155,127,212,0.2)':T.violet.d+'33'}`, position:'relative' }}>
