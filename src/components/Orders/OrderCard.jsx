@@ -105,6 +105,7 @@ export default function OrderCard({ order, onClick, onDelete }) {
             transition: swiping ? 'none' : 'transform .28s cubic-bezier(.4,0,.2,1)',
             position:'relative', overflow:'hidden',
             willChange:'transform',
+            position:'relative',
             // Subtle scale when pressed (only when not swiped)
             scale: pressed && swipeX === 0 ? '0.982' : '1',
           }}
@@ -131,7 +132,7 @@ export default function OrderCard({ order, onClick, onDelete }) {
           </div>
 
           {/* Items */}
-          <div style={{
+          {/* <div style={{
             fontSize:12, color:T.text2, lineHeight:1.4, marginBottom:13, paddingLeft:12,
             borderLeft:'1.5px solid',
             borderImage:'linear-gradient(178deg, rgb(201 107 154 / 37%), rgb(123 94 167 / 25%)) 1 / 1 / 0 stretch',
@@ -143,10 +144,10 @@ export default function OrderCard({ order, onClick, onDelete }) {
             {(order.items || '').split(/[,\n]/).map(i => i.trim()).filter(Boolean).map((i, idx) => (
               <div key={idx}>{i}</div>
             ))}
-          </div>
+          </div> */}
 
           {/* Footer */}
-          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', position:'relative' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', }}>
             <div style={{ display:'flex', alignItems:'center', gap:8 }}>
               <span style={{ fontSize:18, fontWeight:800, background:T.grad.brand, WebkitBackgroundClip:'text', WebkitTextFillColor:'transparent', letterSpacing:'-.01em' }}>
                 {fmt(order.total)}
@@ -162,6 +163,9 @@ export default function OrderCard({ order, onClick, onDelete }) {
               padding:'7px 13px', fontSize:12, fontWeight:700, color:'#fff', cursor:'pointer',
               display:'flex', alignItems:'center', gap:5, fontFamily:T.fontBody,
               boxShadow:'0 4px 14px rgba(37,211,102,.25)',
+              position: 'absolute',
+              right: '16px',
+              bottom: '16px'
             }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
