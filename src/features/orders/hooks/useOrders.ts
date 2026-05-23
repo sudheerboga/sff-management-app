@@ -9,6 +9,7 @@ const key = (boutiqueId: string) => ['orders', boutiqueId];
 export function useOrders() {
   const user = useAuthStore((s) => s.user);
   const boutiqueId = user?.boutiqueId || '';
+  const boutiqueName = user?.boutiqueName || 'Boutique';
   const { enqueueSnackbar } = useSnackbar();
   const qc = useQueryClient();
 
@@ -20,10 +21,11 @@ export function useOrders() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: CreateOrderData) => createOrder(boutiqueId, data),
+    mutationFn: (data: Omit<CreateOrderData, 'boutiqueName'>) =>
+      createOrder(boutiqueId, { ...data, boutiqueName }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key(boutiqueId) });
-      enqueueSnackbar('Order created successfully', { variant: 'success' });
+      enqueueSnackbar('Order created', { variant: 'success' });
     },
     onError: () => enqueueSnackbar('Failed to create order', { variant: 'error' }),
   });

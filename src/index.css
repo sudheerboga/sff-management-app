@@ -32,6 +32,37 @@ button {
   color-scheme: dark
 }
 
+::selection {
+  background: rgba(155, 127, 212, 0.2);
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(155, 127, 212, 0.2);
+  color: inherit;
+}
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgb(253, 250, 248) inset !important;
+  -webkit-text-fill-color: #1a1625 !important;
+  caret-color: #1a1625;
+  transition: background-color 9999s ease-in-out 0s !important;
+}
+
+@media (prefers-color-scheme: dark) {
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px rgba(26, 21, 48, 0.95) inset !important;
+    -webkit-text-fill-color: #f0ecff !important;
+    caret-color: #f0ecff;
+  }
+}
+
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;

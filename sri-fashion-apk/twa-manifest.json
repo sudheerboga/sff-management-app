@@ -10,7 +10,7 @@
   "navigationColorDark": "#000000",
   "navigationDividerColor": "#000000",
   "navigationDividerColorDark": "#000000",
-  "backgroundColor": "#F9F5F0",
+  "backgroundColor": "rgb(253 250 248)",
   "enableNotifications": true,
   "startUrl": "/",
   "iconUrl": "https://sri-fashion-fusion.web.app/logo.JPG",

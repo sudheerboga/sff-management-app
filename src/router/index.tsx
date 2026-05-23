@@ -8,7 +8,10 @@ import AdminLayout from '@/features/admin/AdminLayout';
 const SplashPage = lazy(() => import('@/features/auth/SplashPage'));
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
 const OrdersPage = lazy(() => import('@/features/orders/OrdersPage'));
+const OrdersFilterPage = lazy(() => import('@/features/orders/OrdersFilterPage'));
+const OrderFormPage    = lazy(() => import('@/features/orders/OrderFormPage'));
 const MeasurementsPage = lazy(() => import('@/features/measurements/MeasurementsPage'));
+const MeasurementFormPage = lazy(() => import('@/features/measurements/MeasurementFormPage'));
 const BillingPage = lazy(() => import('@/features/billing/BillingPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const StaffPage = lazy(() => import('@/features/staff/StaffPage'));
@@ -63,7 +66,12 @@ export const router = createBrowserRouter([
         element: <AppShell />,
         children: [
           { path: '/dashboard', element: wrap(<OrdersPage />) },
+          { path: '/dashboard/filters',    element: wrap(<OrdersFilterPage />) },
+          { path: '/dashboard/new',        element: wrap(<OrderFormPage />) },
+          { path: '/dashboard/edit/:orderId', element: wrap(<OrderFormPage />) },
           { path: '/measurements', element: wrap(<MeasurementsPage />) },
+          { path: '/measurements/new', element: wrap(<MeasurementFormPage />) },
+          { path: '/measurements/edit/:measurementId', element: wrap(<MeasurementFormPage />) },
           { path: '/billing', element: wrap(<BillingPage />) },
           { path: '/reports', element: wrap(<ReportsPage />) },
           { path: '/subscription', element: wrap(<SubscriptionPage />) },

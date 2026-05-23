@@ -16,8 +16,11 @@ let recaptchaVerifier: RecaptchaVerifier | null = null;
 
 export function setupRecaptcha(containerId: string): RecaptchaVerifier {
   if (recaptchaVerifier) {
-    recaptchaVerifier.clear();
+    try { recaptchaVerifier.clear(); } catch { /* ignore */ }
+    recaptchaVerifier = null;
   }
+  const container = document.getElementById(containerId);
+  if (container) container.innerHTML = '';
   recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
     size: 'invisible',
     callback: () => {},

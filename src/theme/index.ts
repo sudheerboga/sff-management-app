@@ -24,7 +24,7 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
       warning: { main: '#E65100' },
       success: { main: '#2E7D32' },
       background: {
-        default: mode === 'light' ? '#f9f5f0' : '#0f0d1a',
+        default: mode === 'light' ? 'rgb(253 250 248)' : '#0f0d1a',
         paper: mode === 'light' ? '#ffffff' : '#1a1628',
       },
       text: {

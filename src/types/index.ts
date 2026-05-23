@@ -67,12 +67,14 @@ export interface OrderItem {
 
 export interface Order {
   id: string;
+  orderNumber: string;
   boutiqueId: string;
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
   totalAmount: number;
   totalProfit: number;
+  materialCost: number;
   paidAmount: number;
   balanceAmount: number;
   status: OrderStatus;

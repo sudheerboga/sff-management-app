@@ -20,15 +20,29 @@ function ordersCol(boutiqueId: string) {
   return collection(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS);
 }
 
+function generateOrderNumber(boutiqueName: string): string {
+  const initials = boutiqueName
+    .split(' ')
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase())
+    .join('')
+    .slice(0, 4);
+  const prefix = initials || 'ORD';
+  const suffix = Date.now().toString(36).slice(-5).toUpperCase();
+  return `${prefix}-${suffix}`;
+}
+
 function fromFirestore(id: string, data: Record<string, unknown>): Order {
   return {
     id,
+    orderNumber: data.orderNumber as string || id.slice(-6).toUpperCase(),
     boutiqueId: data.boutiqueId as string || '',
     customerName: data.customerName as string || '',
     customerPhone: data.customerPhone as string || '',
     items: (data.items as OrderItem[]) || [],
     totalAmount: data.totalAmount as number || 0,
     totalProfit: data.totalProfit as number || 0,
+    materialCost: data.materialCost as number || 0,
     paidAmount: data.paidAmount as number || 0,
     balanceAmount: data.balanceAmount as number || 0,
     status: data.status as OrderStatus || 'pending',
@@ -56,11 +70,14 @@ export async function getOrder(boutiqueId: string, orderId: string): Promise<Ord
 }
 
 export interface CreateOrderData {
+  boutiqueName: string;
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
   paidAmount: number;
+  materialCost: number;
   deliveryDate: Date | null;
+  orderDate: Date;
   notes: string;
   createdBy: string;
   createdByName: string;
@@ -68,18 +85,20 @@ export interface CreateOrderData {
 
 export async function createOrder(boutiqueId: string, data: CreateOrderData): Promise<string> {
   const totalAmount = data.items.reduce((s, i) => s + i.amount, 0);
-  const totalProfit = data.items.reduce((s, i) => s + (i.profit || 0), 0);
+  const orderNumber = generateOrderNumber(data.boutiqueName);
   const ref = await addDoc(ordersCol(boutiqueId), {
+    orderNumber,
     boutiqueId,
     customerName: data.customerName,
     customerPhone: data.customerPhone,
     items: data.items,
     totalAmount,
-    totalProfit,
+    totalProfit: totalAmount - (data.materialCost || 0),
+    materialCost: data.materialCost || 0,
     paidAmount: data.paidAmount,
     balanceAmount: totalAmount - data.paidAmount,
     status: 'pending' as OrderStatus,
-    orderDate: serverTimestamp(),
+    orderDate: data.orderDate || serverTimestamp(),
     deliveryDate: data.deliveryDate || null,
     notes: data.notes,
     createdBy: data.createdBy,
@@ -109,11 +128,16 @@ export async function updateOrderPayment(boutiqueId: string, orderId: string, pa
   });
 }
 
-export async function updateOrder(boutiqueId: string, orderId: string, data: Partial<CreateOrderData & { status: OrderStatus }>): Promise<void> {
+export async function updateOrder(
+  boutiqueId: string,
+  orderId: string,
+  data: Partial<Omit<CreateOrderData, 'boutiqueName'> & { status: OrderStatus }>,
+): Promise<void> {
   const update: Record<string, unknown> = { ...data, updatedAt: serverTimestamp() };
   if (data.items) {
     update.totalAmount = data.items.reduce((s, i) => s + i.amount, 0);
-    update.totalProfit = data.items.reduce((s, i) => s + (i.profit || 0), 0);
+    const materialCost = (data.materialCost ?? 0);
+    update.totalProfit = (update.totalAmount as number) - materialCost;
   }
   await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS, orderId), update);
 }

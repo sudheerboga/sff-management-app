@@ -1,31 +1,55 @@
 import { useState, useMemo } from 'react';
-import {
-  Box, Card, CardContent, Typography, TextField, InputAdornment,
-  IconButton, Grid, Chip, Skeleton, Fab,
-} from '@mui/material';
+import { Box, Grid, Skeleton, Fab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-import SearchIcon from '@mui/icons-material/Search';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 import { useMeasurements } from './hooks/useMeasurements';
-import MeasurementForm from './components/MeasurementForm';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import EmptyState from '@/components/common/EmptyState';
 import PageHeader from '@/components/common/PageHeader';
-import { Measurement } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppTheme } from '@/hooks/useAppTheme';
+import { buildMeasurementMessage, shareMeasurementWhatsApp } from '@/utils/whatsapp';
 
 export default function MeasurementsPage() {
+  const { T } = useAppTheme();
   const user = useAuthStore((s) => s.user);
-  const { query, createMutation, updateMutation, deleteMutation } = useMeasurements();
+  const { query, deleteMutation } = useMeasurements();
   const measurements = query.data || [];
+  const navigate = useNavigate();
 
-  const [search, setSearch] = useState('');
-  const [formOpen, setFormOpen] = useState(false);
-  const [editItem, setEditItem] = useState<Measurement | null>(null);
+  const [search,   setSearch]   = useState('');
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  async function handleCopy(e: React.MouseEvent, m: (typeof measurements)[0]) {
+    e.stopPropagation();
+    const text = buildMeasurementMessage(m);
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      setCopiedId(m.id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      // silent fail
+    }
+  }
+
+  function handleWhatsApp(e: React.MouseEvent, m: (typeof measurements)[0]) {
+    e.stopPropagation();
+    shareMeasurementWhatsApp(m);
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return measurements;
@@ -41,21 +65,37 @@ export default function MeasurementsPage() {
         title="Measurements"
         subtitle={`${measurements.length} customers`}
         actionLabel={isStaff ? undefined : 'New Measurement'}
-        onAction={isStaff ? undefined : () => setFormOpen(true)}
+        onAction={isStaff ? undefined : () => navigate('/measurements/new')}
       />
 
-      <TextField
-        size="small"
-        placeholder="Search customer…"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        InputProps={{ startAdornment: <InputAdornment position="start"><SearchIcon fontSize="small" color="action" /></InputAdornment> }}
-        sx={{ mb: 2.5, maxWidth: 360, display: 'block' }}
-      />
+      {/* Search */}
+      <div style={{ position: 'relative', marginBottom: 20 }}>
+        <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: T.muted, display: 'flex', pointerEvents: 'none' }}>
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </span>
+        <input
+          type="text"
+          placeholder="Search customer…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{
+            width: '100%', padding: '11px 14px 11px 38px',
+            border: `1.5px solid ${T.border}`, borderRadius: T.r.md,
+            background: T.inputBg, color: T.text,
+            fontSize: 14, fontFamily: T.fontBody,
+            outline: 'none', boxSizing: 'border-box',
+            WebkitTextFillColor: T.text,
+          }}
+        />
+      </div>
 
       {query.isLoading ? (
         <Grid container spacing={1.5}>
-          {[1, 2, 3].map((i) => <Grid item xs={12} sm={6} md={4} key={i}><Skeleton variant="rounded" height={160} sx={{ borderRadius: 3 }} /></Grid>)}
+          {[1, 2, 3].map((i) => (
+            <Grid item xs={12} sm={6} md={4} key={i}>
+              <Skeleton variant="rounded" height={160} sx={{ borderRadius: 3 }} />
+            </Grid>
+          ))}
         </Grid>
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -63,71 +103,98 @@ export default function MeasurementsPage() {
           title={search ? 'No results' : 'No measurements yet'}
           description={search ? 'Try a different name or phone number' : 'Add your first customer measurement to get started'}
           actionLabel={!isStaff && !search ? 'Add Measurement' : undefined}
-          onAction={() => setFormOpen(true)}
+          onAction={() => navigate('/measurements/new')}
         />
       ) : (
         <Grid container spacing={1.5}>
           {filtered.map((m) => (
             <Grid item xs={12} sm={6} md={4} key={m.id}>
-              <Card sx={{ height: '100%', transition: 'box-shadow .18s', '&:hover': { boxShadow: 4 } }}>
-                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 1 }}>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700} sx={{ fontSize: 15 }}>{m.customerName}</Typography>
-                      {m.customerPhone && <Typography variant="caption" color="text.secondary">{m.customerPhone}</Typography>}
-                    </Box>
-                    {!isStaff && (
-                      <Box sx={{ display: 'flex', gap: 0.25 }}>
-                        <IconButton size="small" onClick={() => setEditItem(m)}><EditIcon sx={{ fontSize: 16 }} /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => setDeleteId(m.id)}><DeleteIcon sx={{ fontSize: 16 }} /></IconButton>
-                      </Box>
+              <div
+                style={{
+                  background: T.card, border: `1px solid ${T.border}`,
+                  borderRadius: T.r.md, padding: '14px 16px',
+                  fontFamily: T.fontBody, cursor: 'pointer',
+                  transition: 'box-shadow .18s',
+                }}
+                onClick={() => navigate(`/measurements/edit/${m.id}`, { state: { measurement: m } })}
+              >
+                {/* Name + actions */}
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{m.customerName}</div>
+                    {m.customerPhone && (
+                      <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{m.customerPhone}</div>
                     )}
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap', mb: 1.5 }}>
-                    {Object.keys(m.garments).map((g) => (
-                      <Chip key={g} label={g} size="small"
-                        sx={{ height: 20, fontSize: 11, borderRadius: 1.5, background: 'rgba(123,94,167,.08)', color: 'primary.main' }} />
-                    ))}
-                  </Box>
-
-                  {m.notes && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1, fontStyle: 'italic' }}>
-                      {m.notes}
-                    </Typography>
+                  </div>
+                  {!isStaff && (
+                    <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 8 }}>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigate(`/measurements/edit/${m.id}`, { state: { measurement: m } }); }}
+                        style={{ width: 30, height: 30, borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.text2 }}
+                      >
+                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setDeleteId(m.id); }}
+                        style={{ width: 30, height: 30, borderRadius: T.r.sm, border: `1.5px solid ${T.danger.border}`, background: T.danger.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.danger.text }}
+                      >
+                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+                      </button>
+                    </div>
                   )}
+                </div>
 
-                  <Typography variant="caption" color="text.disabled">
+                {/* Garment chips */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
+                  {Object.keys(m.garments).map((g) => (
+                    <span key={g} style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: T.r.sm, background: `${T.violet.d}14`, color: T.violet.d, border: `1px solid ${T.violet.d}22` }}>
+                      {g}
+                    </span>
+                  ))}
+                </div>
+
+                {m.notes && (
+                  <div style={{ fontSize: 12, color: T.text2, fontStyle: 'italic', marginBottom: 6, lineHeight: 1.5 }}>{m.notes}</div>
+                )}
+
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTop: `1px solid ${T.border}` }}>
+                  <div style={{ fontSize: 11, color: T.muted }}>
                     Updated {format(m.updatedAt, 'd MMM yyyy')}
-                  </Typography>
-                </CardContent>
-              </Card>
+                  </div>
+                  <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                    {/* Copy to clipboard */}
+                    <button
+                      onClick={(e) => handleCopy(e, m)}
+                      title="Copy measurements"
+                      style={{ height: 28, padding: '0 9px', borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: copiedId === m.id ? T.success.text : T.text2, fontSize: 11, fontWeight: 600, fontFamily: T.fontBody, transition: 'color .2s' }}
+                    >
+                      {copiedId === m.id
+                        ? <><svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Copied</>
+                        : <><svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</>
+                      }
+                    </button>
+                    {/* Open WhatsApp */}
+                    <button
+                      onClick={(e) => handleWhatsApp(e, m)}
+                      title="Send via WhatsApp"
+                      style={{ height: 28, padding: '0 9px', borderRadius: T.r.sm, border: 'none', background: '#25D366', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#fff', fontSize: 11, fontWeight: 700, fontFamily: T.fontBody }}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.134.558 4.136 1.535 5.875L0 24l6.306-1.504A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.814 9.814 0 01-4.964-1.346l-.356-.212-3.741.892.945-3.617-.232-.373A9.79 9.79 0 012.182 12c0-5.421 4.397-9.818 9.818-9.818s9.818 4.397 9.818 9.818-4.397 9.818-9.818 9.818z"/></svg>
+                      Share
+                    </button>
+                  </div>
+                </div>
+              </div>
             </Grid>
           ))}
         </Grid>
       )}
 
       {!isStaff && (
-        <Fab size="medium" onClick={() => setFormOpen(true)} sx={{ position: 'fixed', bottom: { xs: 84, md: 24 }, right: 24 }}>
+        <Fab size="medium" onClick={() => navigate('/measurements/new')}
+          sx={{ position: 'fixed', bottom: 24, right: 24, display: { xs: 'none', md: 'flex' } }}>
           <AddIcon />
         </Fab>
-      )}
-
-      <MeasurementForm
-        open={formOpen}
-        onClose={() => setFormOpen(false)}
-        onSubmit={async (data) => { await createMutation.mutateAsync(data); }}
-        loading={createMutation.isPending}
-      />
-
-      {editItem && (
-        <MeasurementForm
-          open={!!editItem}
-          onClose={() => setEditItem(null)}
-          onSubmit={(data) => updateMutation.mutateAsync({ id: editItem.id, data })}
-          loading={updateMutation.isPending}
-          defaultValues={editItem}
-        />
       )}
 
       <ConfirmDialog

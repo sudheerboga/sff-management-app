@@ -14,7 +14,7 @@ export default defineConfig({
         short_name: 'Boutique',
         description: 'Multi-tenant boutique management platform',
         theme_color: '#7B5EA7',
-        background_color: '#f9f5f0',
+        background_color: 'rgb(253 250 248)',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

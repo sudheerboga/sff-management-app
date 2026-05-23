@@ -70,11 +70,11 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
           {title || user?.boutiqueName || 'Boutique Ecosystem'}
         </Typography>
 
-        <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
+        {/* <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
           <IconButton size="small" onClick={toggleTheme}>
             {themeMode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
           </IconButton>
-        </Tooltip>
+        </Tooltip> */}
 
         <Tooltip title="Account">
           <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>

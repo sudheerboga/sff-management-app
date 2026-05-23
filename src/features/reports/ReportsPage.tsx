@@ -1,61 +1,93 @@
-import { useMemo } from 'react';
-import { Box, Card, CardContent, Typography, Grid, Skeleton } from '@mui/material';
+import { useMemo, useState } from 'react';
+import { Box, Grid, Skeleton } from '@mui/material';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { format, startOfMonth, subMonths, isWithinInterval, endOfMonth } from 'date-fns';
+import { format, startOfMonth, subMonths, isWithinInterval, endOfMonth, isSameMonth } from 'date-fns';
 import { useOrders } from '@/features/orders/hooks/useOrders';
 import { useBilling } from '@/features/billing/hooks/useBilling';
 import PageHeader from '@/components/common/PageHeader';
+import { useAppTheme } from '@/hooks/useAppTheme';
 
-const COLORS = ['#4A6FD4', '#7B5EA7', '#C96B9A', '#43A047', '#E65100'];
-
-function MetricCard({ title, value, subtitle, color }: { title: string; value: string; subtitle?: string; color?: string }) {
-  return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 12 }}>{title}</Typography>
-        <Typography variant="h5" fontWeight={700} sx={{ color: color || 'primary.main', my: 0.5 }}>{value}</Typography>
-        {subtitle && <Typography variant="caption" color="text.secondary">{subtitle}</Typography>}
-      </CardContent>
-    </Card>
-  );
-}
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pending', 'in-progress': 'In Progress',
+  ready: 'Ready', delivered: 'Delivered', cancelled: 'Cancelled',
+};
 
 export default function ReportsPage() {
+  const { T, isDark } = useAppTheme();
   const { query: ordersQuery } = useOrders();
   const { query: billingQuery } = useBilling();
   const orders = ordersQuery.data || [];
-  const bills = billingQuery.data || [];
+  const bills  = billingQuery.data || [];
   const loading = ordersQuery.isLoading || billingQuery.isLoading;
+  const now = new Date();
+  const [tableEndOffset, setTableEndOffset] = useState(0);
 
-  const monthlyData = useMemo(() => {
-    const months = Array.from({ length: 6 }, (_, i) => {
-      const d = subMonths(new Date(), 5 - i);
-      return { start: startOfMonth(d), end: endOfMonth(d), label: format(d, 'MMM yy') };
-    });
-    return months.map(({ start, end, label }) => {
-      const monthOrders = orders.filter((o) => isWithinInterval(o.orderDate, { start, end }));
-      const monthBills = bills.filter((b) => isWithinInterval(b.createdAt, { start, end }));
-      return {
-        month: label,
-        orders: monthOrders.length,
-        delivered: monthOrders.filter((o) => o.status === 'delivered').length,
-        revenue: monthBills.reduce((s, b) => s + b.paidAmount, 0),
-      };
-    });
-  }, [orders, bills]);
+  const tableData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
+    const d     = subMonths(now, tableEndOffset + 5 - i);
+    const start = startOfMonth(d);
+    const end   = endOfMonth(d);
+    const mo    = orders.filter((o) => isWithinInterval(o.orderDate, { start, end }));
+    const mb    = bills.filter((b)  => isWithinInterval(b.createdAt, { start, end }));
+    return {
+      fullMonth: format(d, 'MMM yyyy'),
+      isCurrent: isSameMonth(d, now),
+      orders:    mo.length,
+      revenue:   mb.reduce((s, b) => s + b.totalAmount, 0),
+      paid:      mb.reduce((s, b) => s + b.paidAmount, 0),
+      balance:   mb.reduce((s, b) => s + b.balanceAmount, 0),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [tableEndOffset, orders, bills]);
+
+  const tableTotal = useMemo(() => ({
+    orders:  tableData.reduce((s, r) => s + r.orders, 0),
+    revenue: tableData.reduce((s, r) => s + r.revenue, 0),
+    paid:    tableData.reduce((s, r) => s + r.paid, 0),
+    balance: tableData.reduce((s, r) => s + r.balance, 0),
+  }), [tableData]);
+
+  const [chartEndOffset, setChartEndOffset] = useState(0);
+
+  const chartData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
+    const d     = subMonths(now, chartEndOffset + 5 - i);
+    const start = startOfMonth(d);
+    const end   = endOfMonth(d);
+    const mo    = orders.filter((o) => isWithinInterval(o.orderDate, { start, end }));
+    const mb    = bills.filter((b)  => isWithinInterval(b.createdAt, { start, end }));
+    return {
+      month:    format(d, 'MMM yy'),
+      orders:   mo.length,
+      delivered: mo.filter((o) => o.status === 'delivered').length,
+      revenue:  mb.reduce((s, b) => s + b.totalAmount, 0),
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [chartEndOffset, orders, bills]);
+
+  const chartPeriodOptions = useMemo(() => Array.from({ length: 7 }, (_, offset) => {
+    const endDate   = subMonths(now, offset);
+    const startDate = subMonths(endDate, 5);
+    return {
+      value: offset,
+      label: offset === 0
+        ? `${format(startDate, 'MMM yy')} – ${format(endDate, 'MMM yy')} (Latest)`
+        : `${format(startDate, 'MMM yy')} – ${format(endDate, 'MMM yy')}`,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), []);
 
   const statusData = useMemo(() => {
-    const statusCounts: Record<string, number> = {};
-    orders.forEach((o) => { statusCounts[o.status] = (statusCounts[o.status] || 0) + 1; });
-    return Object.entries(statusCounts).map(([name, value]) => ({ name: name.replace('-', ' '), value }));
+    const counts: Record<string, number> = {};
+    orders.forEach((o) => { counts[o.status] = (counts[o.status] || 0) + 1; });
+    return Object.entries(counts).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, raw: k, value: v }));
   }, [orders]);
 
-  const totalRevenue = bills.reduce((s, b) => s + b.paidAmount, 0);
+  const totalRevenue = bills.reduce((s, b) => s + b.totalAmount, 0);
+  const totalPaid    = bills.reduce((s, b) => s + b.paidAmount, 0);
   const totalBalance = bills.reduce((s, b) => s + b.balanceAmount, 0);
-  const delivered = orders.filter((o) => o.status === 'delivered').length;
+  const delivered    = orders.filter((o) => o.status === 'delivered').length;
   const deliveryRate = orders.length > 0 ? Math.round((delivered / orders.length) * 100) : 0;
 
   const topCustomers = useMemo(() => {
@@ -68,134 +100,268 @@ export default function ReportsPage() {
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   }, [orders]);
 
+  const fmt  = (n: number) => `₹${n.toLocaleString('en-IN')}`;
+  const fmtK = (v: number) => v >= 1000 ? `₹${(v / 1000).toFixed(1)}K` : `₹${v}`;
+
+  // Chart theming
+  const axisStyle = { fill: T.muted, fontSize: 11, fontFamily: T.fontBody };
+  const tooltipStyle = {
+    contentStyle: {
+      background: T.card, border: `1px solid ${T.border}`,
+      borderRadius: T.r.sm, fontSize: 12, fontFamily: T.fontBody,
+      boxShadow: T.sh.md, color: T.text,
+    },
+    labelStyle: { color: T.text, fontWeight: 700 },
+    itemStyle: { color: T.text2 },
+    cursor: { fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' },
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    pending: T.warning.text, 'in-progress': T.blue.d,
+    ready: T.violet.d, delivered: T.success.text, cancelled: T.danger.text,
+  };
+
+  const cardStyle: React.CSSProperties = {
+    background: T.card, border: `1px solid ${T.border}`,
+    borderRadius: T.r.lg, padding: '16px', boxShadow: T.sh.sm,
+  };
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 13, fontWeight: 700, color: T.text,
+    fontFamily: T.fontDisplay, marginBottom: 14,
+  };
+
+  if (loading) {
+    return (
+      <Box>
+        <PageHeader title="Reports" subtitle="Analytics & performance overview" />
+        <Grid container spacing={1.5}>
+          {[1,2,3,4,5,6,7,8].map((i) => (
+            <Grid item xs={6} md={3} key={i}>
+              <Skeleton variant="rounded" height={90} sx={{ borderRadius: 2 }} />
+            </Grid>
+          ))}
+        </Grid>
+      </Box>
+    );
+  }
+
   return (
-    <Box>
+    <Box style={{ fontFamily: T.fontBody }}>
       <PageHeader title="Reports" subtitle="Analytics & performance overview" />
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        {loading ? (
-          [1, 2, 3, 4].map((i) => (
-            <Grid item xs={6} md={3} key={i}>
-              <Skeleton variant="rounded" height={100} sx={{ borderRadius: 3 }} />
-            </Grid>
-          ))
-        ) : (
-          <>
-            <Grid item xs={6} md={3}>
-              <MetricCard title="Total Revenue" value={`₹${totalRevenue.toLocaleString()}`} color="#7B5EA7" />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <MetricCard title="Pending Balance" value={`₹${totalBalance.toLocaleString()}`} color="#E65100" />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <MetricCard title="Total Orders" value={orders.length.toString()} subtitle={`${delivered} delivered`} />
-            </Grid>
-            <Grid item xs={6} md={3}>
-              <MetricCard title="Delivery Rate" value={`${deliveryRate}%`} color={deliveryRate >= 80 ? '#2E7D32' : '#E65100'} />
-            </Grid>
-          </>
-        )}
-      </Grid>
+      {/* ── KPI tiles ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
+        {[
+          { label: 'Total Billed', value: fmt(totalRevenue), sub: `${orders.length} orders`, color: T.violet.d, bg: T.violet.pale },
+          { label: 'Collected',    value: fmt(totalPaid),    sub: 'payments received',       color: T.success.text, bg: T.success.bg },
+          { label: 'Balance Due',  value: fmt(totalBalance), sub: 'pending collection',      color: T.danger.text,  bg: T.danger.bg },
+          { label: 'Delivery Rate',value: `${deliveryRate}%`, sub: `${delivered} delivered`,  color: deliveryRate >= 80 ? T.success.text : T.warning.text, bg: deliveryRate >= 80 ? T.success.bg : T.warning.bg },
+        ].map((kpi) => (
+          <div key={kpi.label} style={{ ...cardStyle, padding: '14px 16px', background: kpi.bg, border: `1px solid ${kpi.color}22` }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: kpi.color, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>{kpi.label}</div>
+            <div style={{ fontSize: 22, fontWeight: 800, color: kpi.color, lineHeight: 1.1, marginBottom: 3 }}>{kpi.value}</div>
+            <div style={{ fontSize: 11, color: kpi.color, opacity: .65 }}>{kpi.sub}</div>
+          </div>
+        ))}
+      </div>
 
-      <Grid container spacing={2} sx={{ mb: 3 }}>
+      {/* ── Revenue bar + Status donut ── */}
+      <Grid container spacing={1.5} sx={{ mb: 2 }}>
         <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight={700} fontFamily="'Playfair Display', serif" sx={{ mb: 2 }}>
-                Monthly Revenue (₹)
-              </Typography>
-              <ResponsiveContainer width="100%" height={220}>
-                <BarChart data={monthlyData} barSize={28}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}K` : v}`} />
-                  <Tooltip formatter={(v: number) => [`₹${v.toLocaleString()}`, 'Revenue']} />
-                  <Bar dataKey="revenue" fill="url(#gradBar)" radius={[6, 6, 0, 0]} />
-                  <defs>
-                    <linearGradient id="gradBar" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#7B5EA7" />
-                      <stop offset="100%" stopColor="#C96B9A" />
-                    </linearGradient>
-                  </defs>
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
+          <div style={cardStyle}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+              <div style={{ ...sectionTitle, marginBottom: 0 }}>Monthly Revenue</div>
+              <select
+                value={chartEndOffset}
+                onChange={(e) => setChartEndOffset(Number(e.target.value))}
+                style={{
+                  padding: '6px 10px', fontSize: 12, fontFamily: T.fontBody,
+                  border: `1.5px solid ${T.border}`, borderRadius: T.r.sm,
+                  background: T.inputBg, color: T.text, outline: 'none',
+                  cursor: 'pointer', flexShrink: 0,
+                }}
+              >
+                {chartPeriodOptions.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={chartData} barSize={26} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={T.violet.d} />
+                    <stop offset="100%" stopColor={T.rose.d} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+                <XAxis dataKey="month" tick={axisStyle} axisLine={{ stroke: T.border }} tickLine={false} />
+                <YAxis tick={axisStyle} axisLine={false} tickLine={false} tickFormatter={fmtK} width={52} />
+                <Tooltip
+                  formatter={(v: number) => [fmt(v), 'Revenue']}
+                  {...tooltipStyle}
+                />
+                <Bar dataKey="revenue" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight={700} fontFamily="'Playfair Display', serif" sx={{ mb: 2 }}>
-                Order Status
-              </Typography>
-              {statusData.length > 0 ? (
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={3} dataKey="value">
-                      {statusData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                    </Pie>
-                    <Tooltip />
-                    <Legend iconSize={10} iconType="circle" wrapperStyle={{ fontSize: 12 }} />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
-                  <Typography color="text.secondary" variant="body2">No data yet</Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={8}>
-          <Card>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight={700} fontFamily="'Playfair Display', serif" sx={{ mb: 2 }}>
-                Orders Trend
-              </Typography>
-              <ResponsiveContainer width="100%" height={180}>
-                <LineChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.06)" />
-                  <XAxis dataKey="month" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="orders" stroke="#4A6FD4" strokeWidth={2.5} dot={{ r: 4 }} name="Orders" />
-                  <Line type="monotone" dataKey="delivered" stroke="#2E7D32" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3 }} name="Delivered" />
-                </LineChart>
+          <div style={{ ...cardStyle, height: '100%', minHeight: 260 }}>
+            <div style={sectionTitle}>Order Status</div>
+            {statusData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie
+                    data={statusData} cx="50%" cy="45%"
+                    innerRadius={52} outerRadius={76}
+                    paddingAngle={3} dataKey="value"
+                  >
+                    {statusData.map((entry, i) => (
+                      <Cell key={i} fill={STATUS_COLORS[entry.raw] || T.violet.d} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(v: number, name: string) => [v, name]}
+                    {...tooltipStyle}
+                  />
+                  <Legend
+                    iconSize={8} iconType="circle"
+                    wrapperStyle={{ fontSize: 11, fontFamily: T.fontBody, color: T.text2, paddingTop: 8 }}
+                  />
+                </PieChart>
               </ResponsiveContainer>
-            </CardContent>
-          </Card>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: T.muted, fontSize: 13 }}>
+                No data yet
+              </div>
+            )}
+          </div>
         </Grid>
 
-        <Grid item xs={12} md={4}>
-          <Card sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="subtitle1" fontWeight={700} fontFamily="'Playfair Display', serif" sx={{ mb: 2 }}>
-                Top Customers
-              </Typography>
-              {topCustomers.length === 0 ? (
-                <Typography color="text.secondary" variant="body2">No data yet</Typography>
-              ) : (
-                topCustomers.map((c, i) => (
-                  <Box key={c.name} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Box sx={{ width: 24, height: 24, borderRadius: '50%', background: COLORS[i % COLORS.length], display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Typography sx={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>{i + 1}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="body2" fontWeight={600} noWrap sx={{ maxWidth: 110 }}>{c.name}</Typography>
-                        <Typography variant="caption" color="text.secondary">{c.orders} orders</Typography>
-                      </Box>
-                    </Box>
-                    <Typography variant="body2" fontWeight={700} color="primary.main">₹{c.revenue.toLocaleString()}</Typography>
-                  </Box>
-                ))
-              )}
-            </CardContent>
-          </Card>
+        {/* ── Orders trend ── */}
+        <Grid item xs={12}>
+          <div style={cardStyle}>
+            <div style={sectionTitle}>Orders Trend — Last 6 Months</div>
+            <ResponsiveContainer width="100%" height={180}>
+              <LineChart data={chartData} margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+                <XAxis dataKey="month" tick={axisStyle} axisLine={{ stroke: T.border }} tickLine={false} />
+                <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
+                <Tooltip {...tooltipStyle} />
+                <Line type="monotone" dataKey="orders"    stroke={T.violet.d} strokeWidth={2.5} dot={{ r: 4, fill: T.violet.d, strokeWidth: 0 }}    name="Orders" />
+                <Line type="monotone" dataKey="delivered" stroke={T.success.text} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 3, fill: T.success.text, strokeWidth: 0 }} name="Delivered" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </Grid>
       </Grid>
+
+      {/* ── Monthly Revenue Table ── */}
+      <div style={{ ...cardStyle, marginBottom: 16, display: 'grid'}}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
+          <div style={{ ...sectionTitle, marginBottom: 0 }}>Monthly Revenue</div>
+          <select
+            value={tableEndOffset}
+            onChange={(e) => setTableEndOffset(Number(e.target.value))}
+            style={{
+              padding: '6px 10px', fontSize: 12, fontFamily: T.fontBody,
+              border: `1.5px solid ${T.border}`, borderRadius: T.r.sm,
+              background: T.inputBg, color: T.text, outline: 'none',
+              cursor: 'pointer', flexShrink: 0,
+            }}
+          >
+            {chartPeriodOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.fontBody, fontSize: 13 }}>
+            <thead>
+              <tr>
+                {['Month', 'Orders', 'Total Billed', 'Collected', 'Balance'].map((h, i) => (
+                  <th key={h} style={{
+                    padding: '8px 10px', textAlign: i === 0 ? 'left' : 'right',
+                    fontSize: 10, fontWeight: 700, color: T.muted,
+                    textTransform: 'uppercase', letterSpacing: '.07em',
+                    borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap',
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.map((row) => (
+                <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
+                  <td style={{ padding: '8px 10px', borderBottom: `1px solid ${T.border}` }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {/* {row.isCurrent && <span style={{ fontSize: 9, fontWeight: 700, background: T.violet.d, color: '#fff', padding: '1px 5px', borderRadius: T.r.xs }}>NOW</span>} */}
+                      <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
+                    {row.orders > 0 ? row.orders : '—'}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
+                    {row.revenue > 0 ? fmt(row.revenue) : '—'}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.paid > 0 ? T.success.text : T.muted, fontWeight: row.paid > 0 ? 600 : 400 }}>
+                    {row.paid > 0 ? fmt(row.paid) : '—'}
+                  </td>
+                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
+                    {row.balance > 0 ? fmt(row.balance) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr style={{ background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
+                <td style={{ padding: '8px 10px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.success.text }}>{tableTotal.paid > 0 ? fmt(tableTotal.paid) : '—'}</td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Top Customers ── */}
+      {/* {topCustomers.length > 0 && (
+        <div style={cardStyle}>
+          <div style={sectionTitle}>Top Customers by Revenue</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {topCustomers.map((c, i) => {
+              const pct = Math.round((c.revenue / totalRevenue) * 100) || 0;
+              const barColors = [T.violet.d, T.rose.d, T.blue.d, T.gold.d, T.success.text];
+              return (
+                <div key={c.name} style={{ padding: '10px 0', borderBottom: i < topCustomers.length - 1 ? `1px solid ${T.border}` : 'none' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+                      <div style={{ width: 26, height: 26, borderRadius: '50%', background: `${barColors[i]}22`, border: `1.5px solid ${barColors[i]}44`, color: barColors[i], fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {i + 1}
+                      </div>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontWeight: 600, color: T.text, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>{c.orders} order{c.orders !== 1 ? 's' : ''}</div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
+                      <div style={{ fontWeight: 700, color: barColors[i], fontSize: 14 }}>{fmt(c.revenue)}</div>
+                      <div style={{ fontSize: 11, color: T.muted }}>{pct}% of total</div>
+                    </div>
+                  </div>
+                  <div style={{ height: 4, background: isDark ? 'rgba(255,255,255,0.06)' : T.border, borderRadius: 99 }}>
+                    <div style={{ height: '100%', width: `${pct}%`, background: barColors[i], borderRadius: 99, transition: 'width .4s ease' }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )} */}
     </Box>
   );
 }

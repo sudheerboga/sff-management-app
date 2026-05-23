@@ -1,201 +1,307 @@
-import { useState, useRef } from 'react';
-import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  Tabs,
-  Tab,
-  InputAdornment,
-  Alert,
-  CircularProgress,
-} from '@mui/material';
-import PhoneIcon from '@mui/icons-material/Phone';
-import EmailIcon from '@mui/icons-material/Email';
-import LockIcon from '@mui/icons-material/Lock';
-import StorefrontIcon from '@mui/icons-material/Storefront';
+import { useState, useRef, useEffect } from 'react';
 import { ConfirmationResult } from 'firebase/auth';
 import { sendPhoneOtp, signInAdmin } from '@/services/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
+import { useAppTheme } from '@/hooks/useAppTheme';
+
+const RESEND_SECONDS = 30;
 
 export default function LoginPage() {
-  const [tab, setTab] = useState(0);
-  const [phone, setPhone] = useState('+91');
-  const [otp, setOtp] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const confirmationRef = useRef<ConfirmationResult | null>(null);
+  const { T } = useAppTheme();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
+
+  const [tab,      setTab]      = useState<'phone' | 'admin'>('phone');
+  const [phone,    setPhone]    = useState('');
+  const [otp,      setOtp]      = useState('');
+  const [otpSent,  setOtpSent]  = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  const [email,    setEmail]    = useState('');
+  const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
+  const [focused,  setFocused]  = useState('');
+  const confirmationRef = useRef<ConfirmationResult | null>(null);
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
 
   if (user) {
     if (user.role === 'superAdmin') navigate('/admin', { replace: true });
     else navigate('/dashboard', { replace: true });
   }
 
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const id = setInterval(() => setResendIn((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [resendIn]);
+
   const handleSendOtp = async () => {
-    if (!phone || phone.length < 10) { setError('Enter a valid phone number'); return; }
-    setLoading(true);
-    setError('');
+    const formatted = `+91${phone.trim()}`;
+    if (!/^\+91\d{10}$/.test(formatted)) { setError('Enter a valid 10-digit number'); return; }
+    setLoading(true); setError('');
     try {
-      confirmationRef.current = await sendPhoneOtp(phone.startsWith('+') ? phone : `+91${phone}`, 'recaptcha-container');
-      setStep('otp');
+      confirmationRef.current = await sendPhoneOtp(formatted, 'recaptcha-container');
+      setOtpSent(true);
+      setResendIn(RESEND_SECONDS);
     } catch (e: unknown) {
       setError((e as Error).message || 'Failed to send OTP');
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 4) { setError('Enter the OTP'); return; }
-    setLoading(true);
-    setError('');
+    if (!otp || otp.length < 6) { setError('Enter the 6-digit code'); return; }
+    setLoading(true); setError('');
     try {
       await confirmationRef.current!.confirm(otp);
-      // navigation handled by auth state listener once role is resolved
+      // navigation handled by auth state listener
     } catch {
-      setError('Invalid OTP. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setError('Incorrect code. Try again.');
+    } finally { setLoading(false); }
   };
 
   const handleAdminLogin = async () => {
     if (!email || !password) { setError('Enter email and password'); return; }
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
     try {
       await signInAdmin(email, password);
       navigate('/admin', { replace: true });
     } catch {
-      setError('Invalid credentials. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setError('Incorrect email or password.');
+    } finally { setLoading(false); }
   };
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(160deg,#1a0f35 0%,#3d2070 50%,#7B5EA7 100%)',
-        p: 2,
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      <Box sx={{ position: 'absolute', top: -100, right: -100, width: 350, height: 350, borderRadius: '50%', background: 'rgba(201,107,154,.15)', filter: 'blur(50px)' }} />
-      <Box sx={{ position: 'absolute', bottom: -80, left: -80, width: 280, height: 280, borderRadius: '50%', background: 'rgba(74,111,212,.12)', filter: 'blur(40px)' }} />
+  function switchTab(t: 'phone' | 'admin') {
+    setTab(t); setError(''); setOtpSent(false); setOtp('');
+  }
 
+  function inp(id: string): React.CSSProperties {
+    const f = focused === id;
+    return {
+      width: '100%', padding: '14px 16px',
+      border: `1.5px solid ${f ? T.violet.d : T.border}`,
+      borderRadius: T.r.md, fontSize: 15,
+      fontFamily: T.fontBody,
+      background: f ? T.inputFocusBg : T.inputBg,
+      color: T.text, outline: 'none',
+      boxSizing: 'border-box' as const,
+      transition: 'border-color .2s, background .2s, box-shadow .2s',
+      boxShadow: f ? `0 0 0 3px ${T.isDark ? 'rgba(155,127,212,0.15)' : 'rgba(123,94,167,0.10)'}` : 'none',
+      WebkitTextFillColor: T.text,
+    };
+  }
+
+  const btnStyle = (disabled: boolean): React.CSSProperties => ({
+    width: '100%', padding: '15px 0',
+    background: disabled ? (T.isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
+    color: disabled ? T.muted : '#fff',
+    border: 'none', borderRadius: T.r.md,
+    fontSize: 15, fontWeight: 700, letterSpacing: '.02em',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    fontFamily: T.fontBody,
+    boxShadow: disabled ? 'none' : T.sh.brand,
+    transition: 'all .2s',
+    opacity: disabled ? .7 : 1,
+  });
+
+  return (
+    <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg, fontFamily: T.fontBody, padding: '24px 20px' }}>
       <div id="recaptcha-container" />
 
-      <Card sx={{ width: '100%', maxWidth: 420, borderRadius: 4, boxShadow: '0 20px 60px rgba(0,0,0,.35)', overflow: 'hidden' }}>
-        {/* Header */}
-        <Box
-          sx={{
-            background: 'linear-gradient(135deg,#4A6FD4 0%,#7B5EA7 40%,#C96B9A 100%)',
-            py: 3.5,
-            px: 3,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ width: 56, height: 56, borderRadius: 2.5, background: 'rgba(255,255,255,.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <StorefrontIcon sx={{ color: '#fff', fontSize: 30 }} />
-          </Box>
-          <Typography variant="h5" sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, color: '#fff', textAlign: 'center' }}>
-            Boutique Ecosystem
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'rgba(255,255,255,.75)', textAlign: 'center' }}>
-            Sign in to your account
-          </Typography>
-        </Box>
+      <div style={{ width: '100%', maxWidth: 380 }}>
 
-        <CardContent sx={{ p: 3 }}>
-          <Tabs value={tab} onChange={(_, v) => { setTab(v); setError(''); setStep('phone'); setOtp(''); }} sx={{ mb: 3 }} variant="fullWidth">
-            <Tab label="Boutique Login" sx={{ fontSize: 13, fontWeight: 600 }} />
-            <Tab label="Admin Login" sx={{ fontSize: 13, fontWeight: 600 }} />
-          </Tabs>
+        {/* ── Brand ── */}
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div style={{ fontSize: 46, fontFamily: T.fontDisplay, fontWeight: 700, background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.1, letterSpacing: '-.02em' }}>
+            Boutique
+          </div>
+          <div style={{ fontSize: 11, color: T.muted, letterSpacing: '.18em', textTransform: 'uppercase', marginTop: 6 }}>
+            Ecosystem
+          </div>
+        </div>
 
-          {error && <Alert severity="error" sx={{ mb: 2, borderRadius: 2, fontSize: 13 }}>{error}</Alert>}
+        {/* ── Tab pills ── */}
+        <div style={{ display: 'flex', gap: 0, marginBottom: 28, background: T.isDark ? 'rgba(255,255,255,0.05)' : T.bg2, borderRadius: T.r.lg, padding: 4 }}>
+          {(['phone', 'admin'] as const).map((t) => (
+            <button
+              key={t}
+              onClick={() => switchTab(t)}
+              style={{
+                flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
+                borderRadius: T.r.md, fontFamily: T.fontBody,
+                fontSize: 14, fontWeight: tab === t ? 700 : 500,
+                background: tab === t ? (T.isDark ? T.card : '#fff') : 'transparent',
+                color: tab === t ? T.text : T.muted,
+                boxShadow: tab === t ? T.sh.xs : 'none',
+                transition: 'all .2s',
+              }}
+            >
+              {t === 'phone' ? '📱  Phone Login' : '🔒  Admin Login'}
+            </button>
+          ))}
+        </div>
 
-          {tab === 0 ? (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {step === 'phone' ? (
-                <>
-                  <TextField
-                    label="Phone Number"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    fullWidth
-                    InputProps={{ startAdornment: <InputAdornment position="start"><PhoneIcon fontSize="small" color="action" /></InputAdornment> }}
-                    placeholder="+91 98765 43210"
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendOtp()}
-                  />
-                  <Button variant="contained" fullWidth onClick={handleSendOtp} disabled={loading} size="large">
-                    {loading ? <CircularProgress size={20} color="inherit" /> : 'Send OTP'}
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
-                    OTP sent to <strong>{phone}</strong>
-                  </Typography>
-                  <TextField
-                    label="Enter OTP"
-                    value={otp}
-                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    fullWidth
-                    inputProps={{ maxLength: 6, style: { letterSpacing: '0.3em', fontSize: 22, textAlign: 'center' } }}
-                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyOtp()}
-                  />
-                  <Button variant="contained" fullWidth onClick={handleVerifyOtp} disabled={loading} size="large">
-                    {loading ? <CircularProgress size={20} color="inherit" /> : 'Verify OTP'}
-                  </Button>
-                  <Button variant="text" size="small" onClick={() => { setStep('phone'); setOtp(''); }} disabled={loading}>
-                    Change number
-                  </Button>
-                </>
-              )}
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <TextField
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                fullWidth
-                InputProps={{ startAdornment: <InputAdornment position="start"><EmailIcon fontSize="small" color="action" /></InputAdornment> }}
+        {/* ── Error ── */}
+        {error && (
+          <div style={{ background: T.danger.bg, border: `1px solid ${T.danger.border}`, borderRadius: T.r.md, padding: '11px 14px', marginBottom: 16, fontSize: 13, color: T.danger.text }}>
+            {error}
+          </div>
+        )}
+
+        {/* ── Phone tab ── */}
+        {tab === 'phone' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+            {/* Country code + phone */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', padding: '0 14px', border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: T.inputBg, fontSize: 14, fontWeight: 600, color: T.text2, whiteSpace: 'nowrap', flexShrink: 0, gap: 6 }}>
+                🇮🇳 <span>+91</span>
+              </div>
+              <input
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                placeholder="Phone number"
+                disabled={otpSent}
+                onKeyDown={(e) => !otpSent && e.key === 'Enter' && handleSendOtp()}
+                onFocus={() => setFocused('phone')}
+                onBlur={() => setFocused('')}
+                style={{ ...inp('phone'), opacity: otpSent ? .55 : 1 }}
               />
-              <TextField
-                label="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                fullWidth
-                InputProps={{ startAdornment: <InputAdornment position="start"><LockIcon fontSize="small" color="action" /></InputAdornment> }}
-                onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-              />
-              <Button variant="contained" fullWidth onClick={handleAdminLogin} disabled={loading} size="large">
-                {loading ? <CircularProgress size={20} color="inherit" /> : 'Sign In'}
-              </Button>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    </Box>
+            </div>
+
+            {/* OTP boxes (shown after send) */}
+            {otpSent && (
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                  <span style={{ fontSize: 12, color: T.muted }}>Code sent to +91 {phone}</span>
+                  {resendIn > 0
+                    ? <span style={{ fontSize: 12, color: T.muted }}>Resend in {resendIn}s</span>
+                    : <button onClick={handleSendOtp} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: T.violet.d, fontFamily: T.fontBody, padding: 0 }}>Resend</button>
+                  }
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                  {Array.from({ length: 6 }).map((_, i) => {
+                    const isFoc = focused === `otp-${i}`;
+                    const filled = !!otp[i];
+                    return (
+                      <input
+                        key={i}
+                        ref={(el) => { otpRefs.current[i] = el; }}
+                        autoFocus={i === 0}
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={otp[i] || ''}
+                        onChange={(e) => {
+                          const digit = e.target.value.replace(/\D/g, '').slice(-1);
+                          const next = otp.split('');
+                          next[i] = digit;
+                          const updated = next.join('').slice(0, 6);
+                          setOtp(updated);
+                          if (digit && i < 5) otpRefs.current[i + 1]?.focus();
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Backspace') {
+                            if (otp[i]) {
+                              const next = otp.split('');
+                              next[i] = '';
+                              setOtp(next.join(''));
+                            } else if (i > 0) {
+                              otpRefs.current[i - 1]?.focus();
+                            }
+                          }
+                          if (e.key === 'Enter' && otp.length === 6) handleVerifyOtp();
+                        }}
+                        onPaste={(e) => {
+                          const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+                          if (pasted) {
+                            setOtp(pasted);
+                            otpRefs.current[Math.min(pasted.length, 5)]?.focus();
+                          }
+                          e.preventDefault();
+                        }}
+                        onFocus={() => setFocused(`otp-${i}`)}
+                        onBlur={() => setFocused('')}
+                        style={{
+                          width: 46, height: 54,
+                          textAlign: 'center',
+                          fontSize: 22, fontWeight: 700,
+                          fontFamily: T.fontBody,
+                          color: filled ? T.violet.d : T.text,
+                          background: isFoc ? T.inputFocusBg : T.inputBg,
+                          border: `1.5px solid ${isFoc ? T.violet.d : filled ? `${T.violet.d}66` : T.border}`,
+                          borderRadius: T.r.md,
+                          outline: 'none',
+                          boxShadow: isFoc ? `0 0 0 3px ${T.isDark ? 'rgba(155,127,212,0.18)' : 'rgba(123,94,167,0.12)'}` : 'none',
+                          transition: 'border-color .18s, box-shadow .18s, background .18s',
+                          caretColor: 'transparent',
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={otpSent ? handleVerifyOtp : handleSendOtp}
+              disabled={loading || (otpSent && otp.length < 6)}
+              style={{ ...btnStyle(loading || (otpSent && otp.length < 6)), marginTop: 4 }}
+            >
+              {loading ? 'Please wait…' : otpSent ? 'Verify & Sign In' : 'Send OTP'}
+            </button>
+
+            {otpSent && (
+              <button
+                onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: T.muted, fontFamily: T.fontBody, padding: '2px 0', textAlign: 'center' }}
+              >
+                ← Change number
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* ── Admin tab ── */}
+        {tab === 'admin' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Admin email"
+              onFocus={() => setFocused('email')}
+              onBlur={() => setFocused('')}
+              style={inp('email')}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Password"
+              onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
+              onFocus={() => setFocused('password')}
+              onBlur={() => setFocused('')}
+              style={inp('password')}
+            />
+            <button
+              onClick={handleAdminLogin}
+              disabled={loading}
+              style={{ ...btnStyle(loading), marginTop: 4 }}
+            >
+              {loading ? 'Signing in…' : 'Sign In'}
+            </button>
+          </div>
+        )}
+
+        {/* ── Footer ── */}
+        <div style={{ textAlign: 'center', marginTop: 40, fontSize: 11, color: T.muted, letterSpacing: '.05em' }}>
+          Boutique Ecosystem · v1.0
+        </div>
+
+      </div>
+    </div>
   );
 }

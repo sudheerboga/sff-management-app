@@ -2,7 +2,6 @@ import {
   collection,
   doc,
   getDocs,
-  addDoc,
   updateDoc,
   setDoc,
   deleteDoc,
@@ -13,7 +12,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
-import { StaffMember } from '@/types';
+import { StaffMember, StaffInvite } from '@/types';
 
 function fromFirestore(data: Record<string, unknown>): StaffMember {
   return {
@@ -67,4 +66,23 @@ export async function removeStaff(uid: string, phone: string): Promise<void> {
 
 export async function updateStaffRole(uid: string, role: 'admin' | 'staff'): Promise<void> {
   await updateDoc(doc(db, COLLECTIONS.BOUTIQUE_USERS, uid), { role });
+}
+
+export async function getPendingInvites(boutiqueId: string): Promise<StaffInvite[]> {
+  const q = query(
+    collection(db, COLLECTIONS.STAFF_INVITES),
+    where('boutiqueId', '==', boutiqueId),
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map((d) => {
+    const data = d.data();
+    return {
+      phone: d.id,
+      boutiqueId: data.boutiqueId as string,
+      role: data.role as 'admin' | 'staff',
+      name: data.name as string,
+      invitedBy: data.invitedBy as string,
+      createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
+    };
+  });
 }
