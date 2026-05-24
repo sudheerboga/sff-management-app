@@ -17,21 +17,24 @@ import PeopleIcon from '@mui/icons-material/People';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { getBoutique } from '@/services/boutiques';
 
 interface NavItem {
   label: string;
   icon: React.ReactNode;
   path: string;
   adminOnly?: boolean;
+  featureKey?: string;
 }
 
 const BOUTIQUE_NAV: NavItem[] = [
-  { label: 'Orders', icon: <AssignmentIcon />, path: '/dashboard' },
-  { label: 'Measurements', icon: <StraightenIcon />, path: '/measurements' },
-  { label: 'Billing', icon: <ReceiptIcon />, path: '/billing' },
-  { label: 'Reports', icon: <BarChartIcon />, path: '/reports' },
-  { label: 'Staff', icon: <PeopleIcon />, path: '/staff', adminOnly: true },
+  { label: 'Orders', icon: <AssignmentIcon />, path: '/dashboard', featureKey: 'orders' },
+  { label: 'Measurements', icon: <StraightenIcon />, path: '/measurements', featureKey: 'measurements' },
+  { label: 'Billing', icon: <ReceiptIcon />, path: '/billing', featureKey: 'billing' },
+  { label: 'Reports', icon: <BarChartIcon />, path: '/reports', featureKey: 'reports' },
+  { label: 'Staff', icon: <PeopleIcon />, path: '/staff', adminOnly: true, featureKey: 'staff' },
   { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription' },
 ];
 
@@ -47,7 +50,20 @@ export default function Sidebar({ open, variant, width, onClose }: Props) {
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 
-  const navItems = BOUTIQUE_NAV.filter((item) => !item.adminOnly || user?.role === 'admin');
+  const { data: boutique } = useQuery({
+    queryKey: ['boutique', user?.boutiqueId],
+    queryFn: () => getBoutique(user!.boutiqueId!),
+    enabled: !!user?.boutiqueId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const enabledFeatures = boutique?.subscription.features ?? [];
+
+  const navItems = BOUTIQUE_NAV.filter((item) => {
+    if (item.adminOnly && user?.role !== 'admin') return false;
+    if (item.featureKey && enabledFeatures.length > 0 && !enabledFeatures.includes(item.featureKey)) return false;
+    return true;
+  });
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -69,10 +85,21 @@ export default function Sidebar({ open, variant, width, onClose }: Props) {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-          <StorefrontIcon sx={{ fontSize: 20 }} />
-          <Typography variant="subtitle1" fontFamily="'Playfair Display', serif" fontWeight={700}>
-            Boutique Ecosystem
-          </Typography>
+          {boutique?.branding?.logoUrl ? (
+            <Box
+              component="img"
+              src={boutique.branding.logoUrl}
+              alt="logo"
+              sx={{ height: 28, maxWidth: 120, objectFit: 'contain', borderRadius: 1 }}
+            />
+          ) : (
+            <>
+              <StorefrontIcon sx={{ fontSize: 20 }} />
+              <Typography variant="subtitle1" fontFamily="'Playfair Display', serif" fontWeight={700}>
+                Boutique Ecosystem
+              </Typography>
+            </>
+          )}
         </Box>
         {user?.boutiqueName && (
           <Typography variant="caption" sx={{ opacity: 0.85, ml: 0.5 }}>

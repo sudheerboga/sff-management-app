@@ -1,4 +1,4 @@
-import { createTheme } from '@mui/material/styles';
+import { createTheme, alpha } from '@mui/material/styles';
 
 declare module '@mui/material/styles' {
   interface Palette {
@@ -9,13 +9,21 @@ declare module '@mui/material/styles' {
   }
 }
 
-const ROSE = '#C96B9A';
-const VIOLET = '#7B5EA7';
-const BLUE = '#4A6FD4';
-const GRADIENT = `linear-gradient(135deg, ${BLUE} 0%, ${VIOLET} 40%, ${ROSE} 100%)`;
+const DEFAULT_VIOLET = '#7B5EA7';
+const DEFAULT_ROSE = '#C96B9A';
+const DEFAULT_BLUE = '#4A6FD4';
 
-export const createAppTheme = (mode: 'light' | 'dark') =>
-  createTheme({
+export const createAppTheme = (
+  mode: 'light' | 'dark',
+  primaryColor = DEFAULT_VIOLET,
+  secondaryColor = DEFAULT_ROSE,
+  accentColor = DEFAULT_BLUE,
+) => {
+  const VIOLET = primaryColor;
+  const ROSE = secondaryColor;
+  const BLUE = accentColor;
+  const GRADIENT = `linear-gradient(135deg, ${BLUE} 0%, ${VIOLET} 40%, ${ROSE} 100%)`;
+  return createTheme({
     palette: {
       mode,
       primary: { main: VIOLET, light: '#A08CC8', dark: '#5A3F86', contrastText: '#fff' },
@@ -85,7 +93,7 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
           body: { overscrollBehavior: 'none' },
           '::-webkit-scrollbar': { width: 4, height: 4 },
           '::-webkit-scrollbar-track': { background: 'transparent' },
-          '::-webkit-scrollbar-thumb': { background: 'rgba(123,94,167,.3)', borderRadius: 4 },
+          '::-webkit-scrollbar-thumb': { background: alpha(VIOLET, 0.3), borderRadius: 4 },
         },
       },
       MuiButton: {
@@ -93,13 +101,13 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
           root: { borderRadius: 10, textTransform: 'none', fontWeight: 600, letterSpacing: '.01em' },
           containedPrimary: {
             background: GRADIENT,
-            boxShadow: '0 6px 20px rgba(123,94,167,.28)',
-            '&:hover': { background: GRADIENT, boxShadow: '0 8px 28px rgba(123,94,167,.38)', filter: 'brightness(1.05)' },
-            '&:disabled': { background: 'rgba(123,94,167,.3)', color: 'rgba(255,255,255,.6)', boxShadow: 'none' },
+            boxShadow: `0 6px 20px ${alpha(VIOLET, 0.28)}`,
+            '&:hover': { background: GRADIENT, boxShadow: `0 8px 28px ${alpha(VIOLET, 0.38)}`, filter: 'brightness(1.05)' },
+            '&:disabled': { background: alpha(VIOLET, 0.3), color: 'rgba(255,255,255,.6)', boxShadow: 'none' },
           },
           outlinedPrimary: {
             borderColor: VIOLET,
-            '&:hover': { background: 'rgba(123,94,167,.06)' },
+            '&:hover': { background: alpha(VIOLET, 0.06) },
           },
         },
       },
@@ -172,7 +180,7 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
           root: {
             background: GRADIENT,
             color: '#fff',
-            boxShadow: '0 6px 20px rgba(123,94,167,.38)',
+            boxShadow: `0 6px 20px ${alpha(VIOLET, 0.38)}`,
             '&:hover': { background: GRADIENT, filter: 'brightness(1.05)' },
           },
         },
@@ -189,9 +197,9 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
             borderRadius: 10,
             margin: '2px 8px',
             '&.Mui-selected': {
-              background: 'rgba(123,94,167,.12)',
+              background: alpha(VIOLET, 0.12),
               color: VIOLET,
-              '&:hover': { background: 'rgba(123,94,167,.16)' },
+              '&:hover': { background: alpha(VIOLET, 0.16) },
             },
           },
         },
@@ -203,3 +211,4 @@ export const createAppTheme = (mode: 'light' | 'dark') =>
       },
     },
   });
+};

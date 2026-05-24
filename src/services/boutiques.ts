@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
-import { Boutique, BoutiqueSubscription, CloudinaryConfig } from '@/types';
+import { Boutique, BoutiqueBranding, BoutiqueSubscription, CloudinaryConfig } from '@/types';
 
 const col = collection(db, COLLECTIONS.BOUTIQUES);
 
@@ -39,6 +39,7 @@ function fromFirestore(id: string, data: Record<string, unknown>): Boutique {
       maxOrders: sub.maxOrders as number | undefined,
       maxStaff: sub.maxStaff as number | undefined,
     },
+    branding: data.branding ? (data.branding as BoutiqueBranding) : undefined,
     createdAt: (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date()),
     updatedAt: (data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date()),
   };
@@ -115,4 +116,18 @@ export async function updateBoutiqueSubscription(boutiqueId: string, subscriptio
 
 export async function updateBoutique(boutiqueId: string, data: Partial<Pick<Boutique, 'name' | 'ownerName' | 'ownerPhone' | 'ownerEmail' | 'address' | 'gstin' | 'cloudinary'>>): Promise<void> {
   await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId), { ...data, updatedAt: serverTimestamp() });
+}
+
+export async function updateBoutiqueBranding(boutiqueId: string, branding: BoutiqueBranding): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId), {
+    branding,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function updateBoutiqueFeatures(boutiqueId: string, features: string[]): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId), {
+    'subscription.features': features,
+    updatedAt: serverTimestamp(),
+  });
 }

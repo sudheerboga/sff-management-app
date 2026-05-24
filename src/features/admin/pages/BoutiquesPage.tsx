@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, ChangeEvent } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, TextField, InputAdornment,
   IconButton, Menu, MenuItem, ListItemIcon, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, Button, Divider,
+  DialogContent, DialogActions, Button, Divider, CircularProgress,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
@@ -11,10 +11,13 @@ import BlockIcon from '@mui/icons-material/Block';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import CloudIcon from '@mui/icons-material/Cloud';
+import TuneIcon from '@mui/icons-material/Tune';
+import BrushIcon from '@mui/icons-material/Brush';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { format } from 'date-fns';
-import { getAllBoutiques, createBoutique, updateBoutique, updateBoutiqueStatus, updateBoutiqueSubscription } from '@/services/boutiques';
+import { getAllBoutiques, createBoutique, updateBoutique, updateBoutiqueStatus, updateBoutiqueSubscription, updateBoutiqueFeatures, updateBoutiqueBranding } from '@/services/boutiques';
+import { uploadToCloudinary } from '@/utils/cloudinary';
 import { useAuthStore } from '@/stores/authStore';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
@@ -43,6 +46,14 @@ export default function BoutiquesPage() {
   const [cloudName, setCloudName] = useState('');
   const [uploadPreset, setUploadPreset] = useState('');
   const [cloudFolder, setCloudFolder] = useState('');
+  const [featuresDialogOpen, setFeaturesDialogOpen] = useState(false);
+  const [editFeatures, setEditFeatures] = useState<string[]>([]);
+  const [brandingDialogOpen, setBrandingDialogOpen] = useState(false);
+  const [primaryColor, setPrimaryColor] = useState('#7B5EA7');
+  const [secondaryColor, setSecondaryColor] = useState('#C96B9A');
+  const [accentColor, setAccentColor] = useState('#4A6FD4');
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const { data: boutiques = [], isLoading } = useQuery({ queryKey: ['admin-boutiques'], queryFn: getAllBoutiques });
 
@@ -94,6 +105,47 @@ export default function BoutiquesPage() {
       setPlanDialogOpen(false);
     },
   });
+
+  const featuresMutation = useMutation({
+    mutationFn: async () => {
+      if (!menuBoutique) return;
+      await updateBoutiqueFeatures(menuBoutique.id, editFeatures);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', menuBoutique?.id] });
+      enqueueSnackbar('Features updated', { variant: 'success' });
+      setFeaturesDialogOpen(false);
+    },
+    onError: () => enqueueSnackbar('Failed to update features', { variant: 'error' }),
+  });
+
+  const brandingMutation = useMutation({
+    mutationFn: () => updateBoutiqueBranding(menuBoutique!.id, { primaryColor, secondaryColor, accentColor, logoUrl: logoUrl || undefined }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', menuBoutique?.id] });
+      enqueueSnackbar('Branding saved', { variant: 'success' });
+      setBrandingDialogOpen(false);
+    },
+    onError: () => enqueueSnackbar('Failed to save branding', { variant: 'error' }),
+  });
+
+  const handleLogoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !menuBoutique?.cloudinary) return;
+    setLogoUploading(true);
+    try {
+      const result = await uploadToCloudinary(file, { ...menuBoutique.cloudinary, folder: `${menuBoutique.cloudinary.folder || menuBoutique.id}/branding` });
+      setLogoUrl(result.url);
+    } catch {
+      enqueueSnackbar('Logo upload failed', { variant: 'error' });
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const ALL_FEATURES = ['orders', 'measurements', 'billing', 'reports', 'staff'];
 
   const filtered = boutiques.filter((b) =>
     !search.trim() ||
@@ -218,6 +270,31 @@ export default function BoutiquesPage() {
           <ListItemIcon><CloudIcon fontSize="small" color="action" /></ListItemIcon>
           Cloudinary Settings
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            setEditFeatures(menuBoutique?.subscription.features || []);
+            setFeaturesDialogOpen(true);
+          }}
+          dense
+        >
+          <ListItemIcon><TuneIcon fontSize="small" color="action" /></ListItemIcon>
+          Feature Settings
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            setPrimaryColor(menuBoutique?.branding?.primaryColor || '#7B5EA7');
+            setSecondaryColor(menuBoutique?.branding?.secondaryColor || '#C96B9A');
+            setAccentColor(menuBoutique?.branding?.accentColor || '#4A6FD4');
+            setLogoUrl(menuBoutique?.branding?.logoUrl || '');
+            setBrandingDialogOpen(true);
+          }}
+          dense
+        >
+          <ListItemIcon><BrushIcon fontSize="small" color="action" /></ListItemIcon>
+          Branding &amp; Logo
+        </MenuItem>
       </Menu>
 
       {/* Subscription dialog */}
@@ -276,6 +353,148 @@ export default function BoutiquesPage() {
         <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
           <Button onClick={() => setCloudDialogOpen(false)} variant="outlined" size="small">Cancel</Button>
           <Button onClick={() => cloudMutation.mutate()} variant="contained" size="small" disabled={cloudMutation.isPending || !cloudName || !uploadPreset}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Branding dialog */}
+      <Dialog open={brandingDialogOpen} onClose={() => setBrandingDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          <Typography fontFamily="'Playfair Display', serif" fontWeight={700} variant="h6">
+            Branding &amp; Logo — {menuBoutique?.name}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
+            {/* Gradient preview */}
+            <Box sx={{
+              height: 48, borderRadius: 2,
+              background: `linear-gradient(135deg, ${accentColor} 0%, ${primaryColor} 40%, ${secondaryColor} 100%)`,
+            }} />
+
+            {/* Color pickers */}
+            <Box sx={{ display: 'flex', gap: 1.5 }}>
+              {[
+                { label: 'Primary', value: primaryColor, onChange: setPrimaryColor },
+                { label: 'Secondary', value: secondaryColor, onChange: setSecondaryColor },
+                { label: 'Accent', value: accentColor, onChange: setAccentColor },
+              ].map(({ label, value, onChange }) => (
+                <Box key={label} sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">{label}</Typography>
+                  <Box
+                    component="label"
+                    sx={{
+                      width: 52, height: 52, borderRadius: 2, bgcolor: value,
+                      cursor: 'pointer', border: '3px solid', borderColor: 'divider',
+                      boxShadow: 2, position: 'relative', overflow: 'hidden',
+                      '&:hover': { boxShadow: 4 },
+                    }}
+                  >
+                    <Box
+                      component="input"
+                      type="color"
+                      value={value}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) => onChange(e.target.value)}
+                      sx={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', width: '100%', height: '100%' }}
+                    />
+                  </Box>
+                  <Typography sx={{ fontSize: 10, fontFamily: 'monospace', color: 'text.secondary' }}>{value}</Typography>
+                </Box>
+              ))}
+            </Box>
+
+            {/* Logo */}
+            <Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Logo</Typography>
+              {logoUrl && (
+                <Box sx={{ mb: 1, p: 1, borderRadius: 2, border: '1px solid', borderColor: 'divider', display: 'inline-flex' }}>
+                  <Box component="img" src={logoUrl} alt="logo" sx={{ height: 40, maxWidth: 160, objectFit: 'contain' }} />
+                </Box>
+              )}
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                {menuBoutique?.cloudinary ? (
+                  <Button component="label" variant="outlined" size="small" disabled={logoUploading}>
+                    {logoUploading ? <CircularProgress size={14} sx={{ mr: 0.5 }} /> : null}
+                    {logoUrl ? 'Replace Logo' : 'Upload Logo'}
+                    <input type="file" accept="image/*" hidden onChange={handleLogoUpload} />
+                  </Button>
+                ) : (
+                  <TextField
+                    label="Logo URL"
+                    value={logoUrl}
+                    onChange={(e) => setLogoUrl(e.target.value)}
+                    fullWidth
+                    size="small"
+                    placeholder="https://..."
+                    helperText="Configure Cloudinary to enable file upload"
+                  />
+                )}
+                {logoUrl && (
+                  <Button size="small" color="error" onClick={() => setLogoUrl('')}>Remove</Button>
+                )}
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setBrandingDialogOpen(false)} variant="outlined" size="small">Cancel</Button>
+          <Button onClick={() => brandingMutation.mutate()} variant="contained" size="small" disabled={brandingMutation.isPending}>
+            Save Branding
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Feature settings dialog */}
+      <Dialog open={featuresDialogOpen} onClose={() => setFeaturesDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          <Typography fontFamily="'Playfair Display', serif" fontWeight={700} variant="h6">
+            Feature Settings — {menuBoutique?.name}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, pt: 1 }}>
+            {ALL_FEATURES.map((feature) => {
+              const enabled = editFeatures.includes(feature);
+              return (
+                <Box
+                  key={feature}
+                  onClick={() =>
+                    setEditFeatures((prev) =>
+                      enabled ? prev.filter((f) => f !== feature) : [...prev, feature],
+                    )
+                  }
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    p: 1.5,
+                    borderRadius: 2,
+                    border: '1.5px solid',
+                    borderColor: enabled ? 'primary.main' : 'divider',
+                    cursor: 'pointer',
+                    background: enabled ? 'rgba(123,94,167,.06)' : 'transparent',
+                    transition: 'all .15s',
+                  }}
+                >
+                  <Typography sx={{ fontSize: 14, fontWeight: 500, textTransform: 'capitalize' }}>
+                    {feature}
+                  </Typography>
+                  <Chip
+                    label={enabled ? 'Enabled' : 'Disabled'}
+                    size="small"
+                    color={enabled ? 'success' : 'default'}
+                    variant={enabled ? 'filled' : 'outlined'}
+                    sx={{ height: 22, fontSize: 11, pointerEvents: 'none' }}
+                  />
+                </Box>
+              );
+            })}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setFeaturesDialogOpen(false)} variant="outlined" size="small">Cancel</Button>
+          <Button onClick={() => featuresMutation.mutate()} variant="contained" size="small" disabled={featuresMutation.isPending}>
             Save
           </Button>
         </DialogActions>

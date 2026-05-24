@@ -33,6 +33,13 @@ export interface BoutiqueSubscription {
   maxStaff?: number;
 }
 
+export interface BoutiqueBranding {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  logoUrl?: string;
+}
+
 export interface Boutique {
   id: string;
   name: string;
@@ -44,6 +51,7 @@ export interface Boutique {
   cloudinary?: CloudinaryConfig;
   status: 'active' | 'inactive' | 'suspended';
   subscription: BoutiqueSubscription;
+  branding?: BoutiqueBranding;
   createdAt: Date;
   updatedAt: Date;
 }

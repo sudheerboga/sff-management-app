@@ -39,16 +39,6 @@ export interface AppTheme {
   danger:  { text: string; bg: string; border: string };
 }
 
-const SHARED_GRAD = {
-  brand:  'linear-gradient(135deg,#4A6FD4 0%,#7B5EA7 40%,#C96B9A 100%)',
-  brandV: 'linear-gradient(180deg,#4A6FD4 0%,#7B5EA7 50%,#C96B9A 100%)',
-  card:   'linear-gradient(135deg,rgba(123,94,167,0.06) 0%,rgba(201,107,154,0.04) 100%)',
-  gold:   'linear-gradient(135deg,#B8922A 0%,#D4AF6F 50%,#E8CC8A 100%)',
-  soft:   'linear-gradient(135deg,#f3eff9 0%,#fdf0f6 50%,#eef2fc 100%)',
-  rose:   'linear-gradient(135deg,#C96B9A,#7B5EA7)',
-  violet: 'linear-gradient(135deg,#7B5EA7,#4A6FD4)',
-};
-
 const R = { xs: 6, sm: 10, md: 14, lg: 18, xl: 24, xxl: 32, pill: 999 };
 const SP = { xs: 4, sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, page: 20 };
 const FONTS = {
@@ -56,15 +46,34 @@ const FONTS = {
   fontDisplay: "'Playfair Display', Georgia, serif",
 };
 
-export function buildT(mode: 'light' | 'dark'): AppTheme {
+export function buildT(
+  mode: 'light' | 'dark',
+  primaryColor = '#7B5EA7',
+  secondaryColor = '#C96B9A',
+  accentColor = '#4A6FD4',
+): AppTheme {
   const isDark = mode === 'dark';
+  const V = primaryColor;
+  const RS = secondaryColor;
+  const BL = accentColor;
+
+  const grad = {
+    brand:  `linear-gradient(135deg,${BL} 0%,${V} 40%,${RS} 100%)`,
+    brandV: `linear-gradient(180deg,${BL} 0%,${V} 50%,${RS} 100%)`,
+    card:   `linear-gradient(135deg,${V}0F 0%,${RS}0A 100%)`,
+    gold:   'linear-gradient(135deg,#B8922A 0%,#D4AF6F 50%,#E8CC8A 100%)',
+    soft:   'linear-gradient(135deg,#f3eff9 0%,#fdf0f6 50%,#eef2fc 100%)',
+    rose:   `linear-gradient(135deg,${RS},${V})`,
+    violet: `linear-gradient(135deg,${V},${BL})`,
+  };
+
   return {
     isDark,
     mode,
     ...FONTS,
     r: R,
     sp: SP,
-    grad: SHARED_GRAD,
+    grad,
 
     bg:            isDark ? '#0d0a18' : '#fdfaf7',
     bg2:           isDark ? '#110e20' : 'rgb(255, 255, 255)',
@@ -78,19 +87,19 @@ export function buildT(mode: 'light' | 'dark'): AppTheme {
     inputFocusBg:  isDark ? 'rgba(155,127,212,0.08)' : '#ffffff',
 
     rose: {
-      d: '#C96B9A', l: '#E8A0BF', dk: '#A0566A',
-      pale: isDark ? 'rgba(201,107,154,0.12)' : '#fdf0f6',
-      muted: isDark ? 'rgba(201,107,154,0.25)' : '#f5d6e8',
+      d: RS, l: '#E8A0BF', dk: '#A0566A',
+      pale: isDark ? `${RS}1F` : `${RS}14`,
+      muted: isDark ? `${RS}3F` : `${RS}22`,
     },
     violet: {
-      d: '#7B5EA7', l: '#A08CC8', dk: '#5A3F86',
-      pale: isDark ? 'rgba(123,94,167,0.12)' : '#f3eff9',
-      muted: isDark ? 'rgba(123,94,167,0.25)' : '#d8ccef',
+      d: V, l: '#A08CC8', dk: '#5A3F86',
+      pale: isDark ? `${V}1F` : `${V}14`,
+      muted: isDark ? `${V}3F` : `${V}22`,
     },
     blue: {
-      d: '#4A6FD4', l: '#7A9CE8', dk: '#2E4FA8',
-      pale: isDark ? 'rgba(74,111,212,0.12)' : '#eef2fc',
-      muted: isDark ? 'rgba(74,111,212,0.25)' : '#c2d0f5',
+      d: BL, l: '#7A9CE8', dk: '#2E4FA8',
+      pale: isDark ? `${BL}1F` : `${BL}14`,
+      muted: isDark ? `${BL}3F` : `${BL}22`,
     },
     gold: {
       d: '#D4AF6F', l: '#E8CC8A', dk: '#B8922A',

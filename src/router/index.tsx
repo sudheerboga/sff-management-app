@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
+import { getBoutique } from '@/services/boutiques';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import AppShell from '@/components/layout/AppShell';
 import AdminLayout from '@/features/admin/AdminLayout';
@@ -42,6 +44,19 @@ function AdminOnlyGuard() {
   return <Outlet />;
 }
 
+function BillingFeatureGuard() {
+  const user = useAuthStore((s) => s.user);
+  const { data: boutique, isLoading } = useQuery({
+    queryKey: ['boutique', user?.boutiqueId],
+    queryFn: () => getBoutique(user!.boutiqueId!),
+    enabled: !!user?.boutiqueId,
+    staleTime: 5 * 60 * 1000,
+  });
+  if (isLoading) return <LoadingScreen />;
+  if (boutique && !boutique.subscription.features.includes('billing')) return <Navigate to="/dashboard" replace />;
+  return <Outlet />;
+}
+
 function RootRedirect() {
   const user = useAuthStore((s) => s.user);
   const loading = useAuthStore((s) => s.loading);
@@ -72,7 +87,10 @@ export const router = createBrowserRouter([
           { path: '/measurements', element: wrap(<MeasurementsPage />) },
           { path: '/measurements/new', element: wrap(<MeasurementFormPage />) },
           { path: '/measurements/edit/:measurementId', element: wrap(<MeasurementFormPage />) },
-          { path: '/billing', element: wrap(<BillingPage />) },
+          {
+            element: <BillingFeatureGuard />,
+            children: [{ path: '/billing', element: wrap(<BillingPage />) }],
+          },
           { path: '/reports', element: wrap(<ReportsPage />) },
           { path: '/subscription', element: wrap(<SubscriptionPage />) },
           {

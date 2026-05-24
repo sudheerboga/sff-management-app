@@ -16,10 +16,10 @@ interface Props {
   onEdit: () => void;
 }
 
-function Avatar({ name, size = 38 }: { name: string; size?: number }) {
+function Avatar({ name, size = 38, grad }: { name: string; size?: number; grad: string }) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#4A6FD4 0%,#7B5EA7 40%,#C96B9A 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <span style={{ fontSize: size * 0.34, fontWeight: 700, color: '#fff' }}>{initials}</span>
     </div>
   );
@@ -144,7 +144,7 @@ export default function OrderCard({ order, onClick, onDelete }: Props) {
           {/* Top row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, position: 'relative', paddingLeft: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <Avatar name={order.customerName} />
+              <Avatar name={order.customerName} grad={T.grad.brand} />
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.customerName}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
