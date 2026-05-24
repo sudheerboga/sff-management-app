@@ -1,5 +1,17 @@
 export type UserRole = 'superAdmin' | 'admin' | 'staff';
 
+export interface RefImage {
+  url: string;
+  publicId: string;
+  note: string;
+}
+
+export interface CloudinaryConfig {
+  cloudName: string;
+  uploadPreset: string;
+  folder: string;
+}
+
 export interface AuthUser {
   uid: string;
   phone?: string;
@@ -8,6 +20,7 @@ export interface AuthUser {
   boutiqueId?: string;
   boutiqueName?: string;
   name: string;
+  cloudinary?: CloudinaryConfig;
 }
 
 export interface BoutiqueSubscription {
@@ -28,6 +41,7 @@ export interface Boutique {
   ownerEmail?: string;
   address?: string;
   gstin?: string;
+  cloudinary?: CloudinaryConfig;
   status: 'active' | 'inactive' | 'suspended';
   subscription: BoutiqueSubscription;
   createdAt: Date;
@@ -63,6 +77,7 @@ export interface OrderItem {
   rate: number;
   amount: number;
   profit: number;
+  images?: RefImage[];
 }
 
 export interface Order {

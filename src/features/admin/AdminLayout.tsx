@@ -82,11 +82,11 @@ export default function AdminLayout() {
             <Typography sx={{ flex: 1, fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: { xs: 16, sm: 20 }, background: (t) => t.palette.brand.gradient, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
               Admin Panel
             </Typography>
-            <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
+            {/* <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
               <IconButton size="small" onClick={toggleTheme}>
                 {themeMode === 'dark' ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
               </IconButton>
-            </Tooltip>
+            </Tooltip> */}
             <Tooltip title="Account">
               <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
                 <Avatar sx={{ width: 32, height: 32, fontSize: 13, background: (t) => t.palette.brand.gradient }}>

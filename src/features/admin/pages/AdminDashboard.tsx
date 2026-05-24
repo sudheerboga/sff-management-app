@@ -15,7 +15,7 @@ function StatCard({ icon, title, value, color }: { icon: React.ReactNode; title:
     <Card>
       <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2.5 }}>
         <Box sx={{ width: 48, height: 48, borderRadius: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `${color}18` }}>
-          <Box sx={{ color }}>{icon}</Box>
+          <Box sx={{ color, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{icon}</Box>
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">{title}</Typography>

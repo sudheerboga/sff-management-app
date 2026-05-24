@@ -98,7 +98,7 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
         onClose={() => setAnchorEl(null)}
         transformOrigin={{ horizontal: 'right', vertical: 'top' }}
         anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
-        PaperProps={{ sx: { mt: 1, borderRadius: 3, minWidth: 200 } }}
+        PaperProps={{ sx: { mt: 1, borderRadius: '18px', minWidth: 200 } }}
       >
         <Box sx={{ px: 2, py: 1.5 }}>
           <Typography variant="subtitle2" fontWeight={700}>{user?.name}</Typography>

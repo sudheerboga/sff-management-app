@@ -11,6 +11,9 @@ interface FormValues {
   ownerEmail: string;
   address: string;
   gstin: string;
+  cloudName: string;
+  uploadPreset: string;
+  cloudFolder: string;
 }
 
 interface Props {
@@ -22,7 +25,7 @@ interface Props {
 
 export default function CreateBoutiqueModal({ open, onClose, onSubmit, loading }: Props) {
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { name: '', ownerName: '', ownerPhone: '+91', ownerEmail: '', address: '', gstin: '' },
+    defaultValues: { name: '', ownerName: '', ownerPhone: '+91', ownerEmail: '', address: '', gstin: '', cloudName: '', uploadPreset: '', cloudFolder: '' },
   });
 
   const handleClose = () => { reset(); onClose(); };
@@ -58,6 +61,18 @@ export default function CreateBoutiqueModal({ open, onClose, onSubmit, loading }
             render={({ field }) => <TextField {...field} label="Address (optional)" fullWidth multiline rows={2} />} />
           <Controller name="gstin" control={control}
             render={({ field }) => <TextField {...field} label="GSTIN (optional)" fullWidth />} />
+
+          <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 1 }}>
+            Cloudinary Image Storage (optional)
+          </Typography>
+          <Controller name="cloudName" control={control}
+            render={({ field }) => <TextField {...field} label="Cloud Name" fullWidth size="small" />} />
+          <Box sx={{ display: 'flex', gap: 1.5 }}>
+            <Controller name="uploadPreset" control={control}
+              render={({ field }) => <TextField {...field} label="Upload Preset" fullWidth size="small" />} />
+            <Controller name="cloudFolder" control={control}
+              render={({ field }) => <TextField {...field} label="Folder" fullWidth size="small" />} />
+          </Box>
         </Box>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>

@@ -32,6 +32,18 @@ button {
   color-scheme: dark
 }
 
+::placeholder {
+  opacity: 0.35;
+}
+
+::-webkit-input-placeholder {
+  opacity: 0.35;
+}
+
+::-moz-placeholder {
+  opacity: 0.35;
+}
+
 ::selection {
   background: rgba(155, 127, 212, 0.2);
   color: inherit;

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Drawer } from '@mui/material';
 import { format } from 'date-fns';
 import { Order } from '@/types';
@@ -26,8 +27,13 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
   const { T, isDark } = useAppTheme();
   const user    = useAuthStore((s) => s.user);
   const isStaff = user?.role === 'staff';
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
   if (!order) return null;
+
+  const allImages = order.items.flatMap((item) =>
+    (item.images || []).map((img) => ({ ...img, itemName: item.garment })),
+  );
 
   const profit = order.totalAmount - (order.materialCost || 0);
 
@@ -145,17 +151,45 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
         <div>
           <span style={secLabel}>Items</span>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {order.items.map((item, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: rowBg, borderRadius: T.r.sm, padding: '10px 14px', border: `1px solid ${T.border}` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ width: 22, height: 22, borderRadius: T.r.sm, background: `${T.violet.d}18`, border: `1px solid ${T.violet.d}33`, color: T.violet.d, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    {i + 1}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{item.garment}</span>
+            {order.items.map((item, i) => {
+              const imgs = item.images || [];
+              return (
+                <div key={i} style={{ background: rowBg, borderRadius: T.r.sm, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ width: 22, height: 22, borderRadius: T.r.sm, background: `${T.violet.d}18`, border: `1px solid ${T.violet.d}33`, color: T.violet.d, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        {i + 1}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{item.garment}</span>
+                    </div>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>₹{item.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                  {imgs.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: '4px 14px 12px' }}>
+                      {imgs.map((img) => {
+                        const globalIdx = allImages.findIndex((x) => x.url === img.url && x.publicId === img.publicId);
+                        return (
+                          <div
+                            key={img.publicId || img.url}
+                            style={{ border: `1.5px solid ${T.border}`, borderRadius: T.r.md, overflow: 'hidden', cursor: 'pointer' }}
+                            onClick={() => setLightboxIdx(globalIdx)}
+                          >
+                            <div style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
+                              <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                            </div>
+                            {img.note && (
+                              <div style={{ padding: '6px 9px', fontSize: 12, color: T.text2, lineHeight: 1.5, fontFamily: T.fontBody, borderTop: `1px solid ${T.border}` }}>
+                                {img.note}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-                <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>₹{item.amount.toLocaleString('en-IN')}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -217,6 +251,50 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           </>
         )}
       </div>
+      {/* ── Lightbox ── */}
+      {lightboxIdx !== null && allImages[lightboxIdx] && (
+        <div
+          onClick={() => setLightboxIdx(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          {/* Prev / Next */}
+          {allImages.length > 1 && (
+            <>
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + allImages.length) % allImages.length); }}
+                style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % allImages.length); }}
+                style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            </>
+          )}
+          <img
+            src={allImages[lightboxIdx].url}
+            alt=""
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
+          />
+          {(allImages[lightboxIdx].note || allImages[lightboxIdx].itemName) && (
+            <div style={{ marginTop: 14, textAlign: 'center', color: '#fff', fontSize: 13, lineHeight: 1.5 }}>
+              <div style={{ opacity: 0.5, fontSize: 11, marginBottom: 4 }}>{allImages[lightboxIdx].itemName}</div>
+              {allImages[lightboxIdx].note && <div>{allImages[lightboxIdx].note}</div>}
+            </div>
+          )}
+          <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{lightboxIdx + 1} / {allImages.length}</div>
+          <button
+            onClick={() => setLightboxIdx(null)}
+            style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      )}
     </Drawer>
   );
 }

@@ -10,10 +10,11 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import BlockIcon from '@mui/icons-material/Block';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
+import CloudIcon from '@mui/icons-material/Cloud';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { format } from 'date-fns';
-import { getAllBoutiques, createBoutique, updateBoutiqueStatus, updateBoutiqueSubscription } from '@/services/boutiques';
+import { getAllBoutiques, createBoutique, updateBoutique, updateBoutiqueStatus, updateBoutiqueSubscription } from '@/services/boutiques';
 import { useAuthStore } from '@/stores/authStore';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
@@ -38,6 +39,10 @@ export default function BoutiquesPage() {
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [planDialogOpen, setPlanDialogOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState(PLAN_OPTIONS[0]);
+  const [cloudDialogOpen, setCloudDialogOpen] = useState(false);
+  const [cloudName, setCloudName] = useState('');
+  const [uploadPreset, setUploadPreset] = useState('');
+  const [cloudFolder, setCloudFolder] = useState('');
 
   const { data: boutiques = [], isLoading } = useQuery({ queryKey: ['admin-boutiques'], queryFn: getAllBoutiques });
 
@@ -51,6 +56,22 @@ export default function BoutiquesPage() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Boutique['status'] }) => updateBoutiqueStatus(id, status),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-boutiques'] }); enqueueSnackbar('Status updated', { variant: 'success' }); },
+  });
+
+  const cloudMutation = useMutation({
+    mutationFn: async () => {
+      if (!menuBoutique || !cloudName || !uploadPreset) return;
+      await updateBoutique(menuBoutique.id, {
+        cloudinary: { cloudName, uploadPreset, folder: cloudFolder },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', menuBoutique?.id] });
+      enqueueSnackbar('Cloudinary settings saved', { variant: 'success' });
+      setCloudDialogOpen(false);
+    },
+    onError: () => enqueueSnackbar('Failed to save Cloudinary settings', { variant: 'error' }),
   });
 
   const planMutation = useMutation({
@@ -184,6 +205,19 @@ export default function BoutiquesPage() {
           <ListItemIcon><CardMembershipIcon fontSize="small" color="primary" /></ListItemIcon>
           Manage Subscription
         </MenuItem>
+        <MenuItem
+          onClick={() => {
+            setMenuAnchor(null);
+            setCloudName(menuBoutique?.cloudinary?.cloudName || '');
+            setUploadPreset(menuBoutique?.cloudinary?.uploadPreset || '');
+            setCloudFolder(menuBoutique?.cloudinary?.folder || '');
+            setCloudDialogOpen(true);
+          }}
+          dense
+        >
+          <ListItemIcon><CloudIcon fontSize="small" color="action" /></ListItemIcon>
+          Cloudinary Settings
+        </MenuItem>
       </Menu>
 
       {/* Subscription dialog */}
@@ -225,10 +259,39 @@ export default function BoutiquesPage() {
         </DialogActions>
       </Dialog>
 
+      {/* Cloudinary settings dialog */}
+      <Dialog open={cloudDialogOpen} onClose={() => setCloudDialogOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>
+          <Typography fontFamily="'Playfair Display', serif" fontWeight={700} variant="h6">
+            Cloudinary Settings — {menuBoutique?.name}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+            <TextField label="Cloud Name" value={cloudName} onChange={(e) => setCloudName(e.target.value)} fullWidth size="small" required />
+            <TextField label="Upload Preset" value={uploadPreset} onChange={(e) => setUploadPreset(e.target.value)} fullWidth size="small" required />
+            <TextField label="Folder (optional)" value={cloudFolder} onChange={(e) => setCloudFolder(e.target.value)} fullWidth size="small" helperText="Leave blank to auto-generate from boutique ID" />
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+          <Button onClick={() => setCloudDialogOpen(false)} variant="outlined" size="small">Cancel</Button>
+          <Button onClick={() => cloudMutation.mutate()} variant="contained" size="small" disabled={cloudMutation.isPending || !cloudName || !uploadPreset}>
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <CreateBoutiqueModal
         open={createOpen}
         onClose={() => setCreateOpen(false)}
-        onSubmit={async (data) => { await createMutation.mutateAsync(data); setCreateOpen(false); }}
+        onSubmit={async (data) => {
+          const { cloudName, uploadPreset, cloudFolder, ...rest } = data;
+          await createMutation.mutateAsync({
+            ...rest,
+            ...(cloudName && uploadPreset ? { cloudinary: { cloudName, uploadPreset, folder: cloudFolder || '' } } : {}),
+          });
+          setCreateOpen(false);
+        }}
         loading={createMutation.isPending}
       />
     </Box>

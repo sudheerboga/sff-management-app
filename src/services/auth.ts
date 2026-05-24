@@ -55,7 +55,8 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
     const data = boutiqueUserSnap.data();
     if (!data.isActive) return null;
     const boutiqueSnap = await getDoc(doc(db, COLLECTIONS.BOUTIQUES, data.boutiqueId));
-    const boutiqueName = boutiqueSnap.exists() ? boutiqueSnap.data().name : 'Boutique';
+    const boutiqueData = boutiqueSnap.exists() ? boutiqueSnap.data() : null;
+    const boutiqueName = boutiqueData?.name || 'Boutique';
     return {
       uid,
       phone: phoneNumber ?? undefined,
@@ -63,6 +64,7 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
       boutiqueId: data.boutiqueId,
       boutiqueName,
       name: data.name || 'User',
+      cloudinary: boutiqueData?.cloudinary ?? undefined,
     };
   }
 
@@ -81,7 +83,8 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
         createdAt: serverTimestamp(),
       });
       const boutiqueSnap = await getDoc(doc(db, COLLECTIONS.BOUTIQUES, invite.boutiqueId));
-      const boutiqueName = boutiqueSnap.exists() ? boutiqueSnap.data().name : 'Boutique';
+      const boutiqueData = boutiqueSnap.exists() ? boutiqueSnap.data() : null;
+      const boutiqueName = boutiqueData?.name || 'Boutique';
       return {
         uid,
         phone: phoneNumber,
@@ -89,6 +92,7 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
         boutiqueId: invite.boutiqueId,
         boutiqueName,
         name: invite.name,
+        cloudinary: boutiqueData?.cloudinary ?? undefined,
       };
     }
   }

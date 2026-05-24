@@ -1,32 +1,57 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation, useBlocker } from 'react-router-dom';
 import { useTheme, useMediaQuery } from '@mui/material';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { inputBase, AppTheme } from '@/theme/appTheme';
 import { useOrders } from './hooks/useOrders';
 import { useAuthStore } from '@/stores/authStore';
+import { useBoutiqueCloudinary } from '@/hooks/useBoutiqueCloudinary';
+import { uploadToCloudinary } from '@/utils/cloudinary';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import { Order, OrderItem } from '@/types';
 
-interface ItemLine { id: number; name: string; amount: string }
+interface ImageDraft {
+  id: string;
+  file?: File;
+  localPreview?: string;
+  url?: string;
+  publicId?: string;
+  note: string;
+  uploading: boolean;
+  error: boolean;
+}
+
+interface ItemLine { id: number; name: string; amount: string; images: ImageDraft[] }
 
 const today = () => new Date().toISOString().split('T')[0];
-const emptyLine = (): ItemLine => ({ id: Date.now() + Math.random(), name: '', amount: '' });
+const emptyLine = (): ItemLine => ({ id: Date.now() + Math.random(), name: '', amount: '', images: [] });
 
 function initLines(order?: Partial<Order>): ItemLine[] {
   if (order?.items?.length)
-    return order.items.map((i, idx) => ({ id: Date.now() + idx, name: i.garment, amount: String(i.amount) }));
+    return order.items.map((i, idx) => ({
+      id: Date.now() + idx,
+      name: i.garment,
+      amount: String(i.amount),
+      images: (i.images || []).map((img) => ({
+        id: Math.random().toString(36).slice(2),
+        url: img.url,
+        publicId: img.publicId,
+        note: img.note,
+        uploading: false,
+        error: false,
+      })),
+    }));
   return [emptyLine()];
 }
 
 // Defined at module level — prevents remount on every parent render
 interface FInputProps {
   label: string; value: string; onChange: (v: string) => void;
-  type?: string; prefix?: string; id: string;
+  type?: string; prefix?: string; placeholder?: string; id: string;
   focusedId: string | null; onFocus: (id: string) => void; onBlur: () => void;
   T: AppTheme; isDark: boolean; labelColor: string;
 }
-function FInput({ label, value, onChange, type = 'text', prefix, id, focusedId, onFocus, onBlur, T, isDark, labelColor }: FInputProps) {
+function FInput({ label, value, onChange, type = 'text', prefix, placeholder, id, focusedId, onFocus, onBlur, T, isDark, labelColor }: FInputProps) {
   const foc = focusedId === id;
   return (
     <div style={{ marginBottom: 14 }}>
@@ -36,11 +61,11 @@ function FInput({ label, value, onChange, type = 'text', prefix, id, focusedId, 
       {prefix ? (
         <div style={{ display: 'flex', alignItems: 'center', border: `1.5px solid ${foc ? T.violet.d : T.border}`, borderRadius: T.r.md, background: foc ? T.inputFocusBg : T.inputBg, overflow: 'hidden', transition: 'all .2s', boxShadow: foc ? `0 0 0 3px ${isDark ? 'rgba(155,127,212,0.15)' : 'rgba(123,94,167,0.12)'}` : T.sh.inner }}>
           <span style={{ padding: '0 6px 0 12px', fontSize: 14, fontWeight: 700, color: T.muted }}>{prefix}</span>
-          <input type={type} value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => onFocus(id)} onBlur={onBlur}
+          <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onFocus={() => onFocus(id)} onBlur={onBlur}
             style={{ flex: 1, padding: '13px 12px 13px 2px', border: 'none', outline: 'none', fontSize: 15, fontFamily: T.fontBody, background: 'transparent', color: T.text, WebkitTextFillColor: T.text, fontWeight: 600 }} />
         </div>
       ) : (
-        <input type={type} value={value} onChange={(e) => onChange(e.target.value)} onFocus={() => onFocus(id)} onBlur={onBlur} style={inputBase(foc, T)} />
+        <input type={type} value={value} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} onFocus={() => onFocus(id)} onBlur={onBlur} style={inputBase(foc, T)} />
       )}
     </div>
   );
@@ -56,6 +81,8 @@ export default function OrderFormPage() {
   const isEdit = !!orderId;
   const user   = useAuthStore((s) => s.user);
   const { query, createMutation, updateMutation } = useOrders();
+  const cloudinaryConfig = useBoutiqueCloudinary();
+  console.log('[Cloudinary] boutiqueId =', user?.boutiqueId, '| user.cloudinary =', user?.cloudinary);
 
   const defaultValues: Partial<Order> | undefined =
     (location.state as { order?: Order })?.order ??
@@ -65,12 +92,20 @@ export default function OrderFormPage() {
   const [phone,     setPhone]     = useState(defaultValues?.customerPhone || '');
   const [orderDt,   setOrderDt]   = useState(defaultValues?.orderDate    ? new Date(defaultValues.orderDate).toISOString().split('T')[0]    : today());
   const [delivDt,   setDelivDt]   = useState(defaultValues?.deliveryDate ? new Date(defaultValues.deliveryDate).toISOString().split('T')[0] : '');
-  const [material,  setMaterial]  = useState(defaultValues?.materialCost?.toString() || '0');
-  const [paid,      setPaid]      = useState(defaultValues?.paidAmount?.toString()   || '0');
+  const [material,  setMaterial]  = useState(defaultValues?.materialCost ? String(defaultValues.materialCost) : '');
+  const [paid,      setPaid]      = useState(defaultValues?.paidAmount   ? String(defaultValues.paidAmount)   : '');
   const [notes,     setNotes]     = useState(defaultValues?.notes || '');
   const [lines,     setLines]     = useState<ItemLine[]>(() => initLines(defaultValues));
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const savedRef = useRef(false);
+
+  // Revoke object URLs on unmount to avoid memory leaks
+  useEffect(() => {
+    return () => {
+      lines.forEach((l) => l.images.forEach((img) => { if (img.localPreview) URL.revokeObjectURL(img.localPreview); }));
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (defaultValues && isEdit) {
@@ -78,8 +113,8 @@ export default function OrderFormPage() {
       setPhone(defaultValues.customerPhone || '');
       setOrderDt(defaultValues.orderDate    ? new Date(defaultValues.orderDate).toISOString().split('T')[0]    : today());
       setDelivDt(defaultValues.deliveryDate ? new Date(defaultValues.deliveryDate).toISOString().split('T')[0] : '');
-      setMaterial(defaultValues.materialCost?.toString() || '0');
-      setPaid(defaultValues.paidAmount?.toString() || '0');
+      setMaterial(defaultValues.materialCost ? String(defaultValues.materialCost) : '');
+      setPaid(defaultValues.paidAmount       ? String(defaultValues.paidAmount)   : '');
       setNotes(defaultValues.notes || '');
       setLines(initLines(defaultValues));
     }
@@ -115,13 +150,65 @@ export default function OrderFormPage() {
     setLines((prev) => { const next = prev.filter((l) => l.id !== id); return next.length ? next : [emptyLine()]; });
   }
 
+  const addImages = useCallback(async (lineId: number, files: FileList) => {
+    if (!cloudinaryConfig) return;
+    const drafts: ImageDraft[] = Array.from(files).map((f) => ({
+      id: Math.random().toString(36).slice(2),
+      file: f,
+      localPreview: URL.createObjectURL(f),
+      note: '',
+      uploading: true,
+      error: false,
+    }));
+    setLines((prev) => prev.map((l) => l.id === lineId ? { ...l, images: [...l.images, ...drafts] } : l));
+
+    for (const draft of drafts) {
+      try {
+        const result = await uploadToCloudinary(draft.file!, cloudinaryConfig);
+        setLines((prev) => prev.map((l) =>
+          l.id === lineId
+            ? { ...l, images: l.images.map((img) => img.id === draft.id ? { ...img, url: result.url, publicId: result.publicId, uploading: false } : img) }
+            : l,
+        ));
+      } catch {
+        setLines((prev) => prev.map((l) =>
+          l.id === lineId
+            ? { ...l, images: l.images.map((img) => img.id === draft.id ? { ...img, uploading: false, error: true } : img) }
+            : l,
+        ));
+      }
+    }
+  }, [cloudinaryConfig]);
+
+  function updateImageNote(lineId: number, imgId: string, note: string) {
+    setLines((prev) => prev.map((l) =>
+      l.id === lineId ? { ...l, images: l.images.map((img) => img.id === imgId ? { ...img, note } : img) } : l,
+    ));
+  }
+
+  function removeImage(lineId: number, imgId: string) {
+    setLines((prev) => prev.map((l) =>
+      l.id === lineId ? { ...l, images: l.images.filter((img) => img.id !== imgId) } : l,
+    ));
+  }
+
   const loading = createMutation.isPending || updateMutation.isPending;
 
   async function handleSave() {
     if (!name.trim()) return;
     const items: OrderItem[] = lines
       .filter((l) => l.name.trim() && parseFloat(l.amount) > 0)
-      .map((l) => ({ garment: l.name.trim(), description: '', qty: 1, rate: parseFloat(l.amount), amount: parseFloat(l.amount), profit: 0 }));
+      .map((l) => ({
+        garment: l.name.trim(),
+        description: '',
+        qty: 1,
+        rate: parseFloat(l.amount),
+        amount: parseFloat(l.amount),
+        profit: 0,
+        images: l.images
+          .filter((img) => img.url && !img.error)
+          .map((img) => ({ url: img.url!, publicId: img.publicId || '', note: img.note })),
+      }));
     if (!items.length) return;
     const data = {
       customerName:  name,
@@ -150,7 +237,6 @@ export default function OrderFormPage() {
   const secHead: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: labelColor, textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 };
   const fi = { focusedId, onFocus: setFocusedId, onBlur: () => setFocusedId(null), T, isDark, labelColor };
 
-  // Save bar clears BottomNav (64px) on mobile
   const saveBarBottom = isDesktop ? 0 : 64;
 
   return (
@@ -187,13 +273,13 @@ export default function OrderFormPage() {
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginBottom: 14 }}>
-          <div>
+          <div style={{ width: '80%' }}>
             <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Order Date</label>
-            <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light' }} />
+            <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%'}} />
           </div>
-          <div>
+          <div style={{ width: '80%' }}>
             <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Delivery Date</label>
-            <input type="date" value={delivDt} onChange={(e) => setDelivDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light' }} />
+            <input type="date" value={delivDt} onChange={(e) => setDelivDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }} />
           </div>
         </div>
       </div>
@@ -208,18 +294,75 @@ export default function OrderFormPage() {
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 10 }}>
           {lines.map((line, idx) => (
-            <div key={line.id} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input value={line.name} onChange={(e) => updateLine(line.id, 'name', e.target.value)} placeholder={`Item ${idx + 1} e.g. Blouse`}
-                style={{ flex: 2, minWidth: 0, ...inputBase(false, T), marginBottom: 0, fontSize: 13, padding: '10px 12px' }} />
-              <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: isDark ? 'rgba(255,255,255,0.03)' : T.bg, overflow: 'hidden' }}>
-                <span style={{ padding: '0 6px 0 10px', fontSize: 13, fontWeight: 700, color: T.muted }}>₹</span>
-                <input type="number" value={line.amount} onChange={(e) => updateLine(line.id, 'amount', e.target.value)} placeholder="0"
-                  style={{ flex: 1, minWidth: 0, padding: '10px 8px 10px 2px', border: 'none', fontSize: 14, fontFamily: T.fontBody, background: 'transparent', color: T.text, outline: 'none', WebkitTextFillColor: T.text, fontWeight: 700 }} />
+            <div key={line.id}>
+              {/* Item row */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input value={line.name} onChange={(e) => updateLine(line.id, 'name', e.target.value)} placeholder={`Item ${idx + 1} e.g. Blouse`}
+                  style={{ flex: 2, minWidth: 0, ...inputBase(false, T), marginBottom: 0, fontSize: 13, padding: '10px 12px' }} />
+                <div style={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0, border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: isDark ? 'rgba(255,255,255,0.03)' : T.bg, overflow: 'hidden' }}>
+                  <span style={{ padding: '0 6px 0 10px', fontSize: 13, fontWeight: 700, color: T.muted }}>₹</span>
+                  <input type="number" value={line.amount} onChange={(e) => updateLine(line.id, 'amount', e.target.value)} placeholder="0"
+                    style={{ flex: 1, minWidth: 0, padding: '10px 8px 10px 2px', border: 'none', fontSize: 14, fontFamily: T.fontBody, background: 'transparent', color: T.text, outline: 'none', WebkitTextFillColor: T.text, fontWeight: 700 }} />
+                </div>
+                {lines.length > 1 && (
+                  <button onClick={() => removeLine(line.id)} style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(248,113,113,0.12)' : '#fdeaea', border: 'none', borderRadius: T.r.sm, cursor: 'pointer', color: T.danger.text, fontSize: 14 }}>✕</button>
+                )}
               </div>
-              {lines.length > 1 && (
-                <button onClick={() => removeLine(line.id)} style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(248,113,113,0.12)' : '#fdeaea', border: 'none', borderRadius: T.r.sm, cursor: 'pointer', color: T.danger.text, fontSize: 14 }}>✕</button>
+
+              {/* Image grid (only shown when Cloudinary is configured) */}
+              {cloudinaryConfig && (
+                <div style={{ marginTop: 10 }}>
+                  {line.images.length > 0 && (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, marginBottom: 8 }}>
+                      {line.images.map((img) => (
+                        <div key={img.id} style={{ border: `1.5px solid ${img.error ? T.danger.border : T.border}`, borderRadius: T.r.md, overflow: 'hidden', background: T.bg2 }}>
+                          {/* Thumbnail */}
+                          <div style={{ position: 'relative', aspectRatio: '4/3', background: isDark ? 'rgba(255,255,255,0.04)' : '#f0eef5' }}>
+                            {(img.localPreview || img.url) && (
+                              <img src={img.localPreview || img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: img.uploading ? 0.45 : 1, display: 'block' }} />
+                            )}
+                            {img.uploading && (
+                              <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.25)' }}>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
+                                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83">
+                                    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="1s" repeatCount="indefinite" />
+                                  </path>
+                                </svg>
+                              </div>
+                            )}
+                            {img.error && (
+                              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', fontSize: 22, gap: 4 }}>
+                                ⚠️
+                                <span style={{ fontSize: 10, color: T.danger.text, fontFamily: T.fontBody }}>Upload failed</span>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => removeImage(line.id, img.id)}
+                              style={{ position: 'absolute', top: 6, right: 6, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.55)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, lineHeight: 1, backdropFilter: 'blur(4px)' }}
+                            >✕</button>
+                          </div>
+                          {/* Note */}
+                          <div style={{ padding: '7px 9px' }}>
+                            <textarea
+                              value={img.note}
+                              onChange={(e) => updateImageNote(line.id, img.id, e.target.value)}
+                              placeholder="Add note (e.g. sleeve detail, colour ref…)"
+                              rows={2}
+                              style={{ width: '100%', boxSizing: 'border-box', resize: 'none', fontSize: 12, lineHeight: 1.5, padding: '6px 8px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontFamily: T.fontBody, outline: 'none', WebkitTextFillColor: T.text }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: T.text2, cursor: 'pointer', padding: '8px 14px', border: `1.5px dashed ${T.border}`, borderRadius: T.r.sm, background: 'none' }}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    {line.images.length > 0 ? 'Add more photos' : 'Add Photos'}
+                    <input type="file" accept="image/*" multiple style={{ display: 'none' }} onChange={(e) => { if (e.target.files?.length) addImages(line.id, e.target.files); e.target.value = ''; }} />
+                  </label>
+                </div>
               )}
             </div>
           ))}
@@ -235,9 +378,21 @@ export default function OrderFormPage() {
       {/* ── Payment ── */}
       <div style={sec}>
         <div style={secHead}><div style={{ width: 14, height: 1, background: T.grad.brand, opacity: .6 }} />Payment Details</div>
+
+        {/* Total amount — auto-calculated from items */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: isDark ? 'rgba(155,127,212,0.1)' : '#f3eff9', border: `1.5px solid ${isDark ? 'rgba(155,127,212,0.25)' : T.violet.d + '33'}`, borderRadius: T.r.md, padding: '12px 16px', marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.violet.d, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 3 }}>Total Amount</div>
+            <div style={{ fontSize: 10, color: T.muted, fontFamily: T.fontBody }}>Auto-calculated from items</div>
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: T.violet.d, letterSpacing: '-.02em', fontFamily: T.fontBody }}>
+            ₹{itemTotal.toLocaleString('en-IN')}
+          </div>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
-          <FInput label="Material Cost" value={material} onChange={setMaterial} type="number" prefix="₹" id="material" {...fi} />
-          <FInput label="Amount Given"  value={paid}     onChange={setPaid}     type="number" prefix="₹" id="paid"     {...fi} />
+          <FInput label="Material Cost" value={material} onChange={setMaterial} type="number" prefix="₹" placeholder="0" id="material" {...fi} />
+          <FInput label="Amount Given"  value={paid}     onChange={setPaid}     type="number" prefix="₹" placeholder="0" id="paid"     {...fi} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, background: isDark ? 'rgba(255,255,255,0.03)' : T.bg2, borderRadius: T.r.md, padding: '14px 15px', border: `1px solid ${T.border}`, marginBottom: 4 }}>
           <div>

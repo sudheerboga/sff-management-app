@@ -329,7 +329,7 @@ export default function ReportsPage() {
       </div>
 
       {/* ── Top Customers ── */}
-      {/* {topCustomers.length > 0 && (
+      {topCustomers.length > 0 && (
         <div style={cardStyle}>
           <div style={sectionTitle}>Top Customers by Revenue</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -354,14 +354,14 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   <div style={{ height: 4, background: isDark ? 'rgba(255,255,255,0.06)' : T.border, borderRadius: 99 }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: barColors[i], borderRadius: 99, transition: 'width .4s ease' }} />
+                    <div style={{ height: '100%', width: `100%`, background: barColors[i], borderRadius: 99, transition: 'width .4s ease' }} />
                   </div>
                 </div>
               );
             })}
           </div>
         </div>
-      )} */}
+      )}
     </Box>
   );
 }
