@@ -1,4 +1,4 @@
-# Sri Fashion Fusion v5.0 — Premium Edition 🪡
+# v5.0 — Premium Edition 🪡
 
 ## What's new in v5
 - ✂️ **Your logo** integrated everywhere — splash, login hero, header
@@ -108,7 +108,7 @@ npm run build
 
 ############
 
-# Sri Fashion Fusion v4.0 🪡
+# v4.0 🪡
 ### Luxury Tailoring Management App
 
 ---
@@ -272,7 +272,7 @@ To publish to **Google Play Store** or **Apple App Store**, you need to wrap the
 ```bash
 npm install @capacitor/core @capacitor/cli
 npm install @capacitor/android @capacitor/ios
-npx cap init "Sri Fashion Fusion" "com.srifashion.app"
+÷
 
 npm run build
 npx cap add android
