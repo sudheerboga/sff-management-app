@@ -135,11 +135,11 @@ export default function BillingPage() {
         </Grid>
       )}
 
-      {!isStaff && !isReadOnly && (
+      {/* {!isStaff && !isReadOnly && (
         <Fab size="medium" onClick={() => setCreateOpen(true)} sx={{ position: 'fixed', bottom: { xs: 84, md: 24 }, right: 24 }}>
           <AddIcon />
         </Fab>
-      )}
+      )} */}
 
       <CreateBillModal
         open={createOpen}

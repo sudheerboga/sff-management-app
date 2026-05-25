@@ -10,8 +10,8 @@ declare module '@mui/material/styles' {
 }
 
 const DEFAULT_VIOLET = '#7B5EA7';
-const DEFAULT_ROSE = '#C96B9A';
-const DEFAULT_BLUE = '#4A6FD4';
+const DEFAULT_ROSE = '#7B5EA7';
+const DEFAULT_BLUE = '#7B5EA7';
 
 export const createAppTheme = (
   mode: 'light' | 'dark',

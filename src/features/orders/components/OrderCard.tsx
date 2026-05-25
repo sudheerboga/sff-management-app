@@ -68,16 +68,14 @@ export default function OrderCard({ order, onClick }: Props) {
 
   return (
     <>
-      <div style={{ position: 'relative', marginBottom: 10, borderRadius: T.r.lg, overflow: 'hidden' }}>
-
-        {/* Card */}
-        <div
+      <div
           style={{
             background: cardBg,
             border: `1.5px solid ${cardBorder}`,
             borderRadius: T.r.lg,
             fontFamily: T.fontBody,
             cursor: 'pointer',
+            marginBottom: 10,
             boxShadow: T.isDark ? '0 4px 24px rgba(0,0,0,.35)' : T.sh.card,
             scale: pressed ? '0.982' : '1',
             transition: 'scale .15s ease',
@@ -172,7 +170,6 @@ export default function OrderCard({ order, onClick }: Props) {
             </button>
           </div>
         </div>
-      </div>
 
       {bill && <WhatsAppBillModal order={order} onClose={() => setBill(false)} />}
     </>

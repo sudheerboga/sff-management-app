@@ -362,7 +362,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                       type="date"
                       value={payDate}
                       onChange={(e) => setPayDate(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                      style={{ width: '80%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
                     />
                   </div>
                 </div>

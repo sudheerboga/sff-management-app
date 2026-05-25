@@ -11,16 +11,17 @@ export default defineConfig({
       includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
       manifest: {
         name: 'Boutique Ecosystem',
-        short_name: 'Boutique',
-        description: 'Multi-tenant boutique management platform',
+        short_name: 'Boutique Ecosystem',
+        description: 'Boutique order and measurement management',
         theme_color: '#7B5EA7',
-        background_color: 'rgb(253 250 248)',
+        background_color: '#0d0a18',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
         icons: [
-          { src: '/logo192.png', sizes: '192x192', type: 'image/png' },
-          { src: '/logo512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: '/favicon/web-app-manifest-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: '/favicon/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: '/favicon/web-app-manifest-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

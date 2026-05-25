@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 
 const VIOLET = '#7B5EA7';
-const ROSE   = '#C96B9A';
-const BLUE   = '#4A6FD4';
+const ROSE   = '#7B5EA7';
+const BLUE   = '#7B5EA7';
 const BG     = '#fdfaf7';
 const FONT_BODY    = "'Jost', system-ui, sans-serif";
 const FONT_DISPLAY = "'Playfair Display', Georgia, serif";

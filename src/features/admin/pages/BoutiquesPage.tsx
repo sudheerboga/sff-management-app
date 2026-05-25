@@ -52,8 +52,8 @@ export default function BoutiquesPage() {
   const [editFeatures, setEditFeatures] = useState<string[]>([]);
   const [brandingDialogOpen, setBrandingDialogOpen] = useState(false);
   const [primaryColor, setPrimaryColor] = useState('#7B5EA7');
-  const [secondaryColor, setSecondaryColor] = useState('#C96B9A');
-  const [accentColor, setAccentColor] = useState('#4A6FD4');
+  const [secondaryColor, setSecondaryColor] = useState('#7B5EA7');
+  const [accentColor, setAccentColor] = useState('#7B5EA7');
   const [logoUrl, setLogoUrl] = useState('');
   const [logoUploading, setLogoUploading] = useState(false);
 
@@ -347,8 +347,8 @@ export default function BoutiquesPage() {
           onClick={() => {
             setMenuAnchor(null);
             setPrimaryColor(menuBoutique?.branding?.primaryColor || '#7B5EA7');
-            setSecondaryColor(menuBoutique?.branding?.secondaryColor || '#C96B9A');
-            setAccentColor(menuBoutique?.branding?.accentColor || '#4A6FD4');
+            setSecondaryColor(menuBoutique?.branding?.secondaryColor || '#7B5EA7');
+            setAccentColor(menuBoutique?.branding?.accentColor || '#7B5EA7');
             setLogoUrl(menuBoutique?.branding?.logoUrl || '');
             setBrandingDialogOpen(true);
           }}

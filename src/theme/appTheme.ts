@@ -49,8 +49,8 @@ const FONTS = {
 export function buildT(
   mode: 'light' | 'dark',
   primaryColor = '#7B5EA7',
-  secondaryColor = '#C96B9A',
-  accentColor = '#4A6FD4',
+  secondaryColor = '#7B5EA7',
+  accentColor = '#7B5EA7',
 ): AppTheme {
   const isDark = mode === 'dark';
   const V = primaryColor;
