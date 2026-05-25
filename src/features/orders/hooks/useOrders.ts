@@ -1,8 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { useAuthStore } from '@/stores/authStore';
-import { getOrders, createOrder, updateOrderStatus, deleteOrder, CreateOrderData, updateOrder } from '@/services/orders';
-import { OrderStatus } from '@/types';
+import { getOrders, createOrder, updateOrderStatus, deleteOrder, CreateOrderData, updateOrder, addPaymentEntry, updateMaterialCost } from '@/services/orders';
+import { OrderStatus, PaymentEntry } from '@/types';
 
 const key = (boutiqueId: string) => ['orders', boutiqueId];
 
@@ -59,5 +59,25 @@ export function useOrders() {
     onError: () => enqueueSnackbar('Failed to delete order', { variant: 'error' }),
   });
 
-  return { query, createMutation, statusMutation, updateMutation, deleteMutation };
+  const addPaymentMutation = useMutation({
+    mutationFn: ({ orderId, payments, totalAmount }: { orderId: string; payments: PaymentEntry[]; totalAmount: number }) =>
+      addPaymentEntry(boutiqueId, orderId, payments, totalAmount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key(boutiqueId) });
+      enqueueSnackbar('Payment recorded', { variant: 'success' });
+    },
+    onError: () => enqueueSnackbar('Failed to record payment', { variant: 'error' }),
+  });
+
+  const updateMaterialCostMutation = useMutation({
+    mutationFn: ({ orderId, materialCost, totalAmount }: { orderId: string; materialCost: number; totalAmount: number }) =>
+      updateMaterialCost(boutiqueId, orderId, materialCost, totalAmount),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: key(boutiqueId) });
+      enqueueSnackbar('Material cost updated', { variant: 'success' });
+    },
+    onError: () => enqueueSnackbar('Failed to update material cost', { variant: 'error' }),
+  });
+
+  return { query, createMutation, statusMutation, updateMutation, deleteMutation, addPaymentMutation, updateMaterialCostMutation };
 }

@@ -38,7 +38,7 @@ export function shareMeasurementWhatsApp(m: Measurement): void {
 
 export function buildWhatsAppBill(order: Order, boutiqueName: string): string {
   const items = order.items
-    .map((i) => `  • ${i.garment} — ₹${i.amount.toLocaleString('en-IN')}`)
+    .map((i) => `  • ${i.garment} —  ${i.amount.toLocaleString('en-IN')}`)
     .join('\n');
 
   const statusEmoji =
@@ -57,16 +57,16 @@ export function buildWhatsAppBill(order: Order, boutiqueName: string): string {
     `*Items:*`,
     items,
     `━━━━━━━━━━━━━━━`,
-    `💰 *Total: ₹${order.totalAmount}*`,
+    `💰 *Total:  ${order.totalAmount}*`,
     order.paidAmount > 0
-      ? `✅ Paid: ₹${order.paidAmount}`
+      ? `✅ Paid:  ${order.paidAmount}`
       : '',
     order.balanceAmount > 0
-      ? `🔴 *Balance Due: ₹${order.balanceAmount}*`
+      ? `🔴 *Balance Due:  ${order.balanceAmount}*`
       : `✅ *Fully Paid*`,
     '',
-    `${statusEmoji} Status: ${order.status.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`,
-    '',
+    // `${statusEmoji} Status: ${order.status.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())}`,
+    // '',
     order.notes ? `📝 _${order.notes}_\n` : '',
     `_Thank you for choosing ${boutiqueName}!_ ❤️ `,
   ]

@@ -20,7 +20,7 @@ export function useMeasurements() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data: { customerName: string; customerPhone: string; garments: CustomerMeasurements; notes: string }) =>
+    mutationFn: (data: { customerId: string; memberName: string; memberId?: string; customerName: string; customerPhone: string; garments: CustomerMeasurements; notes: string }) =>
       createMeasurement(boutiqueId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: key(boutiqueId) });

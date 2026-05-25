@@ -8,7 +8,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useBoutiqueCloudinary } from '@/hooks/useBoutiqueCloudinary';
 import { uploadToCloudinary } from '@/utils/cloudinary';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { Order, OrderItem } from '@/types';
+import CustomerMemberPicker from '@/components/common/CustomerMemberPicker';
+import { useCustomers } from '@/features/customers/hooks/useCustomers';
+import { Order, OrderItem, CustomerPickResult, CustomerMember } from '@/types';
 
 interface ImageDraft {
   id: string;
@@ -81,15 +83,22 @@ export default function OrderFormPage() {
   const isEdit = !!orderId;
   const user   = useAuthStore((s) => s.user);
   const { query, createMutation, updateMutation } = useOrders();
+  const { query: customersQuery, createMutation: createCustomer, addMemberMutation } = useCustomers();
   const cloudinaryConfig = useBoutiqueCloudinary();
-  console.log('[Cloudinary] boutiqueId =', user?.boutiqueId, '| user.cloudinary =', user?.cloudinary);
 
   const defaultValues: Partial<Order> | undefined =
     (location.state as { order?: Order })?.order ??
     (orderId ? query.data?.find((o) => o.id === orderId) : undefined);
 
-  const [name,      setName]      = useState(defaultValues?.customerName  || '');
-  const [phone,     setPhone]     = useState(defaultValues?.customerPhone || '');
+  const prefillPhone = (location.state as { prefillPhone?: string })?.prefillPhone || '';
+
+  const [customerPick, setCustomerPick] = useState<CustomerPickResult>({
+    customerId:   defaultValues?.customerId   || '',
+    customerName: defaultValues?.customerName || '',
+    customerPhone: defaultValues?.customerPhone || prefillPhone,
+    memberName:   defaultValues?.memberName   || defaultValues?.customerName || '',
+    memberId:     defaultValues?.memberId,
+  });
   const [orderDt,   setOrderDt]   = useState(defaultValues?.orderDate    ? new Date(defaultValues.orderDate).toISOString().split('T')[0]    : today());
   const [delivDt,   setDelivDt]   = useState(defaultValues?.deliveryDate ? new Date(defaultValues.deliveryDate).toISOString().split('T')[0] : '');
   const [material,  setMaterial]  = useState(defaultValues?.materialCost ? String(defaultValues.materialCost) : '');
@@ -97,6 +106,7 @@ export default function OrderFormPage() {
   const [notes,     setNotes]     = useState(defaultValues?.notes || '');
   const [lines,     setLines]     = useState<ItemLine[]>(() => initLines(defaultValues));
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [pickErrors, setPickErrors] = useState<{ phone?: string; name?: string }>({});
   const savedRef = useRef(false);
 
   // Revoke object URLs on unmount to avoid memory leaks
@@ -109,8 +119,13 @@ export default function OrderFormPage() {
 
   useEffect(() => {
     if (defaultValues && isEdit) {
-      setName(defaultValues.customerName  || '');
-      setPhone(defaultValues.customerPhone || '');
+      setCustomerPick({
+        customerId:    defaultValues.customerId   || '',
+        customerName:  defaultValues.customerName || '',
+        customerPhone: defaultValues.customerPhone || '',
+        memberName:    defaultValues.memberName   || defaultValues.customerName || '',
+        memberId:      defaultValues.memberId,
+      });
       setOrderDt(defaultValues.orderDate    ? new Date(defaultValues.orderDate).toISOString().split('T')[0]    : today());
       setDelivDt(defaultValues.deliveryDate ? new Date(defaultValues.deliveryDate).toISOString().split('T')[0] : '');
       setMaterial(defaultValues.materialCost ? String(defaultValues.materialCost) : '');
@@ -125,16 +140,16 @@ export default function OrderFormPage() {
   const isDirty = useMemo(() => {
     if (isEdit) {
       return (
-        name     !== (defaultValues?.customerName  || '') ||
-        phone    !== (defaultValues?.customerPhone || '') ||
+        customerPick.customerName  !== (defaultValues?.customerName  || '') ||
+        customerPick.customerPhone !== (defaultValues?.customerPhone || '') ||
         material !== (defaultValues?.materialCost?.toString() || '0') ||
         paid     !== (defaultValues?.paidAmount?.toString()   || '0') ||
         notes    !== (defaultValues?.notes || '') ||
         lines.length !== (defaultValues?.items?.length || 1)
       );
     }
-    return name.trim().length > 0 || phone.length > 0 || lines.some((l) => l.name || l.amount !== '');
-  }, [isEdit, name, phone, material, paid, notes, lines, defaultValues]);
+    return customerPick.customerName.trim().length > 0 || customerPick.customerPhone.length > 0 || lines.some((l) => l.name || l.amount !== '');
+  }, [isEdit, customerPick, material, paid, notes, lines, defaultValues]);
 
   const blocker = useBlocker(() => !savedRef.current && isDirty);
 
@@ -195,7 +210,11 @@ export default function OrderFormPage() {
   const loading = createMutation.isPending || updateMutation.isPending;
 
   async function handleSave() {
-    if (!name.trim()) return;
+    const errors: { phone?: string; name?: string } = {};
+    if (!customerPick.customerName.trim()) errors.name = 'Customer name is required';
+    if (setPickErrors) setPickErrors(errors);
+    if (Object.keys(errors).length) return;
+
     const items: OrderItem[] = lines
       .filter((l) => l.name.trim() && parseFloat(l.amount) > 0)
       .map((l) => ({
@@ -210,9 +229,29 @@ export default function OrderFormPage() {
           .map((img) => ({ url: img.url!, publicId: img.publicId || '', note: img.note })),
       }));
     if (!items.length) return;
+
+    // Resolve customerId — create new customer if needed
+    let resolvedCustomerId = customerPick.customerId;
+    const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
+
+    if (!resolvedCustomerId && customerPick.customerPhone) {
+      // New customer
+      resolvedCustomerId = await createCustomer.mutateAsync({
+        name: customerPick.customerName,
+        phone: customerPick.customerPhone,
+        members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
+      });
+    } else if (resolvedCustomerId && pick._newMember) {
+      // Existing customer with a brand-new family member
+      await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+    }
+
     const data = {
-      customerName:  name,
-      customerPhone: phone,
+      customerId:    resolvedCustomerId,
+      memberName:    customerPick.memberName || customerPick.customerName,
+      memberId:      customerPick.memberId,
+      customerName:  customerPick.customerName,
+      customerPhone: customerPick.customerPhone,
       items,
       paidAmount:   parseFloat(paid)     || 0,
       materialCost: parseFloat(material) || 0,
@@ -262,17 +301,20 @@ export default function OrderFormPage() {
       {/* ── Customer ── */}
       <div style={sec}>
         <div style={secHead}><div style={{ width: 14, height: 1, background: T.grad.brand, opacity: .6 }} />Customer Details</div>
-        <FInput label="Customer Name *" value={name} onChange={setName} id="cname" {...fi} />
-        <div style={{ marginBottom: 14 }}>
-          <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Mobile Number</label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ padding: '13px 12px', borderRadius: T.r.md, fontSize: 14, fontWeight: 600, color: T.text2, background: isDark ? 'rgba(255,255,255,0.05)' : T.bg2, border: `1.5px solid ${T.border}`, whiteSpace: 'nowrap', flexShrink: 0 }}>🇮🇳 +91</div>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="00000 00000"
-              onFocus={() => setFocusedId('phone')} onBlur={() => setFocusedId(null)}
-              style={{ ...inputBase(focusedId === 'phone', T), flex: 1, minWidth: 0, width: 'auto', letterSpacing: 1.2 }} />
+        <CustomerMemberPicker
+          value={customerPick}
+          onChange={(v) => { setCustomerPick(v); setPickErrors({}); }}
+          customers={customersQuery.data || []}
+          errors={pickErrors}
+        />
+        {/* member label shown when different from account holder */}
+        {customerPick.memberName && customerPick.memberName !== customerPick.customerName && (
+          <div style={{ marginTop: 10, marginBottom: 4, fontSize: 12, color: T.violet.d, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Order for: {customerPick.memberName}
           </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginBottom: 14 }}>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginTop: 14, marginBottom: 14 }}>
           <div style={{ width: '80%' }}>
             <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Order Date</label>
             <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%'}} />
@@ -416,17 +458,17 @@ export default function OrderFormPage() {
         zIndex: 50,
         paddingBottom: '2rem'
       }}>
-        <button onClick={handleSave} disabled={loading || !name.trim()}
+        <button onClick={handleSave} disabled={loading || !customerPick.customerName.trim()}
           style={{
             width: '100%', maxWidth: 600, display: 'block', margin: '0 auto',
             padding: '15px 0', border: 'none', borderRadius: T.r.md,
-            background: (loading || !name.trim()) ? (isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
-            color: (loading || !name.trim()) ? T.muted : '#fff',
+            background: (loading || !customerPick.customerName.trim()) ? (isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
+            color: (loading || !customerPick.customerName.trim()) ? T.muted : '#fff',
             fontSize: 15, fontFamily: T.fontBody, fontWeight: 700,
-            cursor: (loading || !name.trim()) ? 'not-allowed' : 'pointer',
+            cursor: (loading || !customerPick.customerName.trim()) ? 'not-allowed' : 'pointer',
             letterSpacing: '.02em',
-            boxShadow: (loading || !name.trim()) ? 'none' : T.sh.brand,
-            opacity: (loading || !name.trim()) ? .5 : 1,
+            boxShadow: (loading || !customerPick.customerName.trim()) ? 'none' : T.sh.brand,
+            opacity: (loading || !customerPick.customerName.trim()) ? .5 : 1,
             transition: 'all .2s',
           }}>
           {loading ? 'Saving…' : isEdit ? 'Update Order' : '+ Save Order'}

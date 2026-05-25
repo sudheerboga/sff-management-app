@@ -61,6 +61,13 @@ service cloud.firestore {
         allow delete: if isSuperAdmin() || isAdminOf(boutiqueId);
       }
 
+      match /customers/{customerId} {
+        allow read:   if isSuperAdmin() || isMemberOf(boutiqueId);
+        allow create: if isSuperAdmin() || isMemberOf(boutiqueId);
+        allow update: if isSuperAdmin() || isMemberOf(boutiqueId);
+        allow delete: if isSuperAdmin() || isAdminOf(boutiqueId);
+      }
+
       match /deletedRecords/{recordId} {
         allow read:  if isSuperAdmin() || isAdminOf(boutiqueId);
         allow write: if isSuperAdmin() || isMemberOf(boutiqueId);

@@ -8,9 +8,10 @@ export interface OrderFilters {
   dateFrom: string;
   dateTo: string;
   status: OrderStatus | 'all';
+  balanceDue: boolean;
 }
 
-export const BLANK_FILTERS: OrderFilters = { datePreset: 'all', dateFrom: '', dateTo: '', status: 'all' };
+export const BLANK_FILTERS: OrderFilters = { datePreset: 'all', dateFrom: '', dateTo: '', status: 'all', balanceDue: false };
 
 const DATE_OPTS: { v: DatePreset; label: string }[] = [
   { v: 'all',    label: 'All time' },
@@ -159,7 +160,7 @@ export default function OrdersFilterSheet({ open, initial, onClose, onApply }: P
           <div style={{ height: 1, background: T.border, marginBottom: 28 }} />
 
           {/* Status */}
-          <section style={{ marginBottom: 24 }}>
+          <section style={{ marginBottom: 28 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>
               Status
             </div>
@@ -170,6 +171,28 @@ export default function OrdersFilterSheet({ open, initial, onClose, onApply }: P
                 </button>
               ))}
             </div>
+          </section>
+
+          <div style={{ height: 1, background: T.border, marginBottom: 28 }} />
+
+          {/* Balance Due */}
+          <section style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.muted, letterSpacing: '.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+              Payment
+            </div>
+            <button
+              onClick={() => setDraft((d) => ({ ...d, balanceDue: !d.balanceDue }))}
+              style={{
+                ...pill(draft.balanceDue),
+                display: 'flex', alignItems: 'center', gap: 8,
+              }}
+            >
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+              Balance Due
+            </button>
           </section>
         </div>
 

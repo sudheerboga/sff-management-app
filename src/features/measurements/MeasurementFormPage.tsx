@@ -5,7 +5,9 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { inputBase, AppTheme } from '@/theme/appTheme';
 import { useMeasurements } from './hooks/useMeasurements';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
-import { Measurement, CustomerMeasurements } from '@/types';
+import CustomerMemberPicker from '@/components/common/CustomerMemberPicker';
+import { useCustomers } from '@/features/customers/hooks/useCustomers';
+import { Measurement, CustomerMeasurements, CustomerPickResult, CustomerMember } from '@/types';
 
 const GARMENT_TYPES = ['Blouse', 'Lehenga', 'Saree', 'Churidar', 'Frock', 'Gown', 'Pavadai', 'Kurti', 'Custom'];
 
@@ -21,58 +23,6 @@ const DEFAULT_FIELDS: Record<string, string[]> = {
   Custom:   [],
 };
 
-interface CustomerInputProps {
-  label: string; value: string; onChange: (v: string) => void;
-  placeholder?: string; prefix?: string; required?: boolean; error?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>['inputMode'];
-  T: AppTheme; isDark: boolean;
-}
-function CustomerInput({ label, value, onChange, placeholder, prefix, required, error, inputMode, T, isDark }: CustomerInputProps) {
-  const [focused, setFocused] = useState(false);
-  const hasError = !!error;
-  return (
-    <div>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: hasError ? T.danger.text : focused ? (isDark ? T.gold.d : T.violet.d) : T.muted, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6, transition: 'color .2s' }}>
-        {label}{required && <span style={{ color: T.danger.text, marginLeft: 2 }}>*</span>}
-      </label>
-      <div style={{
-        display: 'flex', alignItems: 'center',
-        border: `1.5px solid ${hasError ? T.danger.border : focused ? T.violet.d : T.border}`,
-        borderRadius: T.r.md, background: focused ? T.inputFocusBg : T.inputBg,
-        boxShadow: hasError
-          ? `0 0 0 3px ${isDark ? 'rgba(248,113,113,0.15)' : 'rgba(139,32,32,0.10)'}`
-          : focused ? `0 0 0 3px ${isDark ? 'rgba(155,127,212,0.15)' : 'rgba(123,94,167,0.12)'}` : T.sh.inner,
-        transition: 'all .2s', overflow: 'hidden',
-      }}>
-        {prefix && (
-          <span style={{ padding: '0 10px 0 14px', fontSize: 13, color: T.muted, borderRight: `1px solid ${T.border}`, whiteSpace: 'nowrap', flexShrink: 0, lineHeight: '46px' }}>
-            {prefix}
-          </span>
-        )}
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          placeholder={placeholder}
-          inputMode={inputMode}
-          style={{
-            flex: 1, minWidth: 0, border: 'none', outline: 'none',
-            padding: '13px 14px',
-            fontSize: 15, fontFamily: T.fontBody,
-            background: 'transparent', color: T.text, WebkitTextFillColor: T.text,
-          }}
-        />
-      </div>
-      {hasError && (
-        <div style={{ fontSize: 12, color: T.danger.text, marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          {error}
-        </div>
-      )}
-    </div>
-  );
-}
 
 interface MeasureFieldProps {
   label: string; value: string;
@@ -130,13 +80,22 @@ export default function MeasurementFormPage() {
   const { measurementId } = useParams<{ measurementId?: string }>();
   const isEdit = !!measurementId;
   const { query, createMutation, updateMutation } = useMeasurements();
+  const { query: customersQuery, createMutation: createCustomer, addMemberMutation } = useCustomers();
 
   const defaultValues: Measurement | undefined =
     (location.state as { measurement?: Measurement })?.measurement ??
     (measurementId ? query.data?.find((m) => m.id === measurementId) : undefined);
 
-  const [customerName,     setCustomerName]     = useState(defaultValues?.customerName  || '');
-  const [customerPhone,    setCustomerPhone]    = useState(defaultValues?.customerPhone || '');
+  const prefillPhone = (location.state as { prefillPhone?: string })?.prefillPhone || '';
+
+  const [customerPick, setCustomerPick] = useState<CustomerPickResult>({
+    customerId:    defaultValues?.customerId   || '',
+    customerName:  defaultValues?.customerName || '',
+    customerPhone: defaultValues?.customerPhone || prefillPhone,
+    memberName:    defaultValues?.memberName   || defaultValues?.customerName || '',
+    memberId:      defaultValues?.memberId,
+  });
+  const [pickErrors, setPickErrors] = useState<{ phone?: string; name?: string }>({});
   const [notes,            setNotes]            = useState(defaultValues?.notes || '');
   const [activeGarment,    setActiveGarment]    = useState<string>(defaultValues ? Object.keys(defaultValues.garments)[0] || 'Blouse' : 'Blouse');
   const [selectedGarments, setSelectedGarments] = useState<string[]>(defaultValues ? Object.keys(defaultValues.garments) : ['Blouse']);
@@ -152,8 +111,13 @@ export default function MeasurementFormPage() {
 
   useEffect(() => {
     if (defaultValues && isEdit) {
-      setCustomerName(defaultValues.customerName  || '');
-      setCustomerPhone(defaultValues.customerPhone || '');
+      setCustomerPick({
+        customerId:    defaultValues.customerId   || '',
+        customerName:  defaultValues.customerName || '',
+        customerPhone: defaultValues.customerPhone || '',
+        memberName:    defaultValues.memberName   || defaultValues.customerName || '',
+        memberId:      defaultValues.memberId,
+      });
       setNotes(defaultValues.notes || '');
       const garments = Object.keys(defaultValues.garments);
       setSelectedGarments(garments);
@@ -165,18 +129,17 @@ export default function MeasurementFormPage() {
   }, [defaultValues?.id]);
 
   const isDirty = useMemo(() => {
-    if (isEdit) return customerName !== (defaultValues?.customerName || '') || customerPhone !== (defaultValues?.customerPhone || '');
-    return customerName.trim().length > 0 || customerPhone.length > 0;
-  }, [isEdit, customerName, customerPhone, defaultValues]);
-
-  const duplicateNameError = useMemo(() => {
-    const trimmed = customerName.trim().toLowerCase();
-    if (!trimmed) return '';
-    const exists = (query.data || []).some(
-      (m) => m.customerName.trim().toLowerCase() === trimmed && m.id !== measurementId,
-    );
-    return exists ? `"${customerName.trim()}" already has a measurement record` : '';
-  }, [customerName, query.data, measurementId]);
+    const garmentsDirty = JSON.stringify(measurements) !== JSON.stringify(defaultValues?.garments || {});
+    const notesDirty    = notes !== (defaultValues?.notes || '');
+    if (isEdit) {
+      return (
+        customerPick.customerName  !== (defaultValues?.customerName  || '') ||
+        customerPick.customerPhone !== (defaultValues?.customerPhone || '') ||
+        garmentsDirty || notesDirty
+      );
+    }
+    return customerPick.customerName.trim().length > 0 || customerPick.customerPhone.length > 0 || garmentsDirty;
+  }, [isEdit, customerPick, measurements, notes, defaultValues]);
 
   const blocker = useBlocker(() => !savedRef.current && isDirty);
 
@@ -214,8 +177,33 @@ export default function MeasurementFormPage() {
   const loading = createMutation.isPending || updateMutation.isPending;
 
   async function handleSave() {
-    if (!customerName.trim()) return;
-    const data = { customerName, customerPhone, garments: measurements, notes };
+    const errors: { phone?: string; name?: string } = {};
+    if (!customerPick.customerName.trim()) errors.name = 'Customer name is required';
+    setPickErrors(errors);
+    if (Object.keys(errors).length) return;
+
+    let resolvedCustomerId = customerPick.customerId;
+    const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
+
+    if (!resolvedCustomerId && customerPick.customerPhone) {
+      resolvedCustomerId = await createCustomer.mutateAsync({
+        name: customerPick.customerName,
+        phone: customerPick.customerPhone,
+        members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
+      });
+    } else if (resolvedCustomerId && pick._newMember) {
+      await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+    }
+
+    const data = {
+      customerId:    resolvedCustomerId,
+      memberName:    customerPick.memberName || customerPick.customerName,
+      memberId:      customerPick.memberId,
+      customerName:  customerPick.customerName,
+      customerPhone: customerPick.customerPhone,
+      garments:      measurements,
+      notes,
+    };
     if (isEdit && measurementId) {
       await updateMutation.mutateAsync({ id: measurementId, data });
     } else {
@@ -252,22 +240,19 @@ export default function MeasurementFormPage() {
       </div>
 
       {/* ── Customer fields ── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-        <CustomerInput
-          label="Customer Name" required
-          value={customerName} onChange={setCustomerName}
-          placeholder="e.g. Name"
-          error={duplicateNameError}
-          T={T} isDark={isDark}
+      <div style={{ marginBottom: 16 }}>
+        <CustomerMemberPicker
+          value={customerPick}
+          onChange={(v) => { setCustomerPick(v); setPickErrors({}); }}
+          customers={customersQuery.data || []}
+          errors={pickErrors}
         />
-        <CustomerInput
-          label="Phone Number"
-          value={customerPhone}
-          onChange={(v) => setCustomerPhone(v.replace(/\D/g, '').slice(0, 10))}
-          placeholder="10-digit mobile number"
-          prefix="+91" inputMode="tel"
-          T={T} isDark={isDark}
-        />
+        {customerPick.memberName && customerPick.memberName !== customerPick.customerName && (
+          <div style={{ marginTop: 10, fontSize: 12, color: T.violet.d, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            Measurements for: {customerPick.memberName}
+          </div>
+        )}
       </div>
 
       {/* ── Garment tabs — horizontally scrollable ── */}
@@ -350,16 +335,16 @@ export default function MeasurementFormPage() {
 
       {/* ── Sticky save bar ── */}
       <div style={{ position: 'fixed', left: 0, right: 0, bottom: saveBarBottom, padding: '12px 16px', background: isDark ? 'rgba(13,10,24,0.96)' : 'rgba(253,250,247,0.96)', backdropFilter: 'blur(16px)', borderTop: `1px solid ${T.border}`, zIndex: 50, paddingBottom: '2rem' }}>
-        <button onClick={handleSave} disabled={loading || !customerName.trim() || !!duplicateNameError}
+        <button onClick={handleSave} disabled={loading || !customerPick.customerName.trim()}
           style={{
             width: '100%', display: 'block',
             padding: '14px 0', border: 'none', borderRadius: T.r.md,
-            background: (loading || !customerName.trim() || !!duplicateNameError) ? (isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
-            color: (loading || !customerName.trim() || !!duplicateNameError) ? T.muted : '#fff',
+            background: (loading || !customerPick.customerName.trim()) ? (isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
+            color: (loading || !customerPick.customerName.trim()) ? T.muted : '#fff',
             fontSize: 15, fontFamily: T.fontBody, fontWeight: 700,
-            cursor: (loading || !customerName.trim() || !!duplicateNameError) ? 'not-allowed' : 'pointer',
-            boxShadow: (loading || !customerName.trim() || !!duplicateNameError) ? 'none' : T.sh.brand,
-            opacity: (loading || !customerName.trim() || !!duplicateNameError) ? .5 : 1,
+            cursor: (loading || !customerPick.customerName.trim()) ? 'not-allowed' : 'pointer',
+            boxShadow: (loading || !customerPick.customerName.trim()) ? 'none' : T.sh.brand,
+            opacity: (loading || !customerPick.customerName.trim()) ? .5 : 1,
             transition: 'all .2s',
           }}>
           {loading ? 'Saving…' : isEdit ? `Update Measurements` : `Save Measurements`}

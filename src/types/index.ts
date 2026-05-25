@@ -76,7 +76,47 @@ export interface StaffInvite {
   createdAt: Date;
 }
 
+// ─── Customer / Family model ───────────────────────────────────────────────
+export type MemberRelation = 'self' | 'child' | 'spouse' | 'other';
+
+export interface CustomerMember {
+  id: string;
+  name: string;
+  relation: MemberRelation;
+}
+
+export interface Customer {
+  id: string;
+  boutiqueId: string;
+  name: string;        // account holder name
+  phone: string;       // unique per boutique — used for WhatsApp
+  members: CustomerMember[];
+  notes: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Returned by CustomerMemberPicker — carried into Order / Measurement
+export interface CustomerPickResult {
+  customerId: string;
+  customerName: string;   // account holder
+  customerPhone: string;
+  memberName: string;     // who the order / measurement is for
+  memberId?: string;
+}
+
+// ─── Orders ────────────────────────────────────────────────────────────────
 export type OrderStatus = 'pending' | 'in-progress' | 'ready' | 'delivered' | 'cancelled';
+
+export interface PaymentEntry {
+  id: string;
+  amount: number;
+  date: Date;
+  note: string;
+  recordedBy: string;
+  recordedById: string;
+  recordedByRole: string;
+}
 
 export interface OrderItem {
   garment: string;
@@ -92,12 +132,16 @@ export interface Order {
   id: string;
   orderNumber: string;
   boutiqueId: string;
+  customerId: string;     // ref to customers collection ('' for legacy orders)
+  memberName: string;     // who this order is for (may differ from customerName)
+  memberId?: string;
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
   totalAmount: number;
   totalProfit: number;
   materialCost: number;
+  payments: PaymentEntry[];
   paidAmount: number;
   balanceAmount: number;
   status: OrderStatus;
@@ -120,6 +164,9 @@ export interface CustomerMeasurements {
 export interface Measurement {
   id: string;
   boutiqueId: string;
+  customerId: string;     // ref to customers collection ('' for legacy)
+  memberName: string;     // who these measurements belong to
+  memberId?: string;
   customerName: string;
   customerPhone: string;
   garments: CustomerMeasurements;

@@ -37,13 +37,22 @@ export default function OrdersPage() {
     if (newOrderOpen) { navigate('/dashboard/new'); setNewOrderOpen(false); }
   }, [newOrderOpen, setNewOrderOpen, navigate]);
 
+  // Keep selectedOrder in sync when query re-fetches (e.g. after payment added)
+  useEffect(() => {
+    if (selectedOrder && query.data) {
+      const updated = query.data.find((o) => o.id === selectedOrder.id);
+      if (updated) setSelectedOrder(updated);
+    }
+  }, [query.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Read filters from URL params
-  const datePreset   = searchParams.get('date')   || 'all';
-  const dateFrom     = searchParams.get('from')   || '';
-  const dateTo       = searchParams.get('to')     || '';
-  const statusFilter = (searchParams.get('status') || 'all') as OrderStatus | 'all';
-  const activeCount  = (datePreset !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0);
-  const hasFilters   = activeCount > 0;
+  const datePreset    = searchParams.get('date')       || 'all';
+  const dateFrom      = searchParams.get('from')       || '';
+  const dateTo        = searchParams.get('to')         || '';
+  const statusFilter  = (searchParams.get('status') || 'all') as OrderStatus | 'all';
+  const balanceDue    = searchParams.get('balance')    === '1';
+  const activeCount   = (datePreset !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (balanceDue ? 1 : 0);
+  const hasFilters    = activeCount > 0;
 
   const filtered = useMemo(() => {
     let list = orders;
@@ -53,12 +62,13 @@ export default function OrdersPage() {
     if (datePreset === 'custom' && dateFrom)
       list = list.filter((o) => o.orderDate >= new Date(dateFrom) && o.orderDate <= endOfDay(dateTo ? new Date(dateTo) : now));
     if (statusFilter !== 'all') list = list.filter((o) => o.status === statusFilter);
+    if (balanceDue) list = list.filter((o) => o.balanceAmount > 0);
     if (search.trim()) {
       const s = search.toLowerCase();
       list = list.filter((o) => o.customerName.toLowerCase().includes(s) || o.customerPhone?.includes(s));
     }
     return list;
-  }, [orders, datePreset, dateFrom, dateTo, statusFilter, search]);
+  }, [orders, datePreset, dateFrom, dateTo, statusFilter, balanceDue, search]);
 
   const handleStatusChange = (orderId: string, status: OrderStatus) => {
     statusMutation.mutate({ orderId, status });
@@ -83,6 +93,7 @@ export default function OrdersPage() {
       if (f.dateTo)   p.set('to',   f.dateTo);
     }
     if (f.status !== 'all') p.set('status', f.status);
+    if (f.balanceDue) p.set('balance', '1');
     setSearchParams(p);
     setFilterOpen(false);
   };
@@ -92,6 +103,7 @@ export default function OrdersPage() {
     dateFrom,
     dateTo,
     status: statusFilter,
+    balanceDue,
   };
 
   return (
@@ -159,7 +171,7 @@ export default function OrdersPage() {
         <Grid container spacing={1.5}>
           {[1, 2, 3, 4].map((i) => (
             <Grid item xs={12} sm={6} key={i}>
-              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 3 }} />
+              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 2 }} />
             </Grid>
           ))}
         </Grid>

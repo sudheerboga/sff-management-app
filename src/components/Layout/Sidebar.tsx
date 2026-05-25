@@ -30,12 +30,13 @@ interface NavItem {
 }
 
 const BOUTIQUE_NAV: NavItem[] = [
-  { label: 'Orders', icon: <AssignmentIcon />, path: '/dashboard', featureKey: 'orders' },
-  { label: 'Measurements', icon: <StraightenIcon />, path: '/measurements', featureKey: 'measurements' },
-  { label: 'Billing', icon: <ReceiptIcon />, path: '/billing', featureKey: 'billing' },
-  { label: 'Reports', icon: <BarChartIcon />, path: '/reports', featureKey: 'reports' },
-  { label: 'Staff', icon: <PeopleIcon />, path: '/staff', adminOnly: true, featureKey: 'staff' },
-  { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription' },
+  { label: 'Orders',       icon: <AssignmentIcon />,    path: '/dashboard',    featureKey: 'orders'       },
+  { label: 'Customers',    icon: <PeopleIcon />,         path: '/customers'                               },
+  { label: 'Measurements', icon: <StraightenIcon />,    path: '/measurements', featureKey: 'measurements' },
+  { label: 'Billing',      icon: <ReceiptIcon />,        path: '/billing',      featureKey: 'billing'      },
+  { label: 'Reports',      icon: <BarChartIcon />,       path: '/reports',      featureKey: 'reports'      },
+  { label: 'Staff',        icon: <PeopleIcon />,         path: '/staff',        adminOnly: true, featureKey: 'staff' },
+  { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription'                            },
 ];
 
 interface Props {

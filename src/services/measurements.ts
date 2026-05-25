@@ -24,6 +24,9 @@ function fromFirestore(id: string, data: Record<string, unknown>): Measurement {
   return {
     id,
     boutiqueId: data.boutiqueId as string || '',
+    customerId: data.customerId as string || '',
+    memberName: data.memberName as string || (data.customerName as string) || '',
+    memberId: data.memberId as string | undefined,
     customerName: data.customerName as string || '',
     customerPhone: data.customerPhone as string || '',
     garments: (data.garments as CustomerMeasurements) || {},
@@ -47,6 +50,9 @@ export async function getMeasurement(boutiqueId: string, measurementId: string):
 }
 
 export async function createMeasurement(boutiqueId: string, data: {
+  customerId: string;
+  memberName: string;
+  memberId?: string;
   customerName: string;
   customerPhone: string;
   garments: CustomerMeasurements;
@@ -55,6 +61,7 @@ export async function createMeasurement(boutiqueId: string, data: {
   const ref = await addDoc(measurementsCol(boutiqueId), {
     boutiqueId,
     ...data,
+    memberId: data.memberId || null,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     isDeleted: false,
@@ -63,6 +70,9 @@ export async function createMeasurement(boutiqueId: string, data: {
 }
 
 export async function updateMeasurement(boutiqueId: string, measurementId: string, data: {
+  customerId?: string;
+  memberName?: string;
+  memberId?: string;
   customerName?: string;
   customerPhone?: string;
   garments?: CustomerMeasurements;

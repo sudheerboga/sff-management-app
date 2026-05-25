@@ -8,6 +8,7 @@ export const COLLECTIONS = {
   MEASUREMENTS: 'measurements',
   BILLING: 'billing',
   DELETED_RECORDS: 'deletedRecords',
+  CUSTOMERS: 'customers',
 } as const;
 
 export const boutiqueRef = (boutiqueId: string, sub: string) =>

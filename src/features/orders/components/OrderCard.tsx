@@ -1,12 +1,8 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import { format, isPast, isToday } from 'date-fns';
 import { Order } from '@/types';
-import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import WhatsAppBillModal from './WhatsAppBillModal';
-
-const DELETE_WIDTH   = 80;
-const SNAP_THRESHOLD = DELETE_WIDTH * 0.45;
 
 interface Props {
   order: Order;
@@ -16,11 +12,30 @@ interface Props {
   onEdit: () => void;
 }
 
-function Avatar({ name, size = 38, grad }: { name: string; size?: number; grad: string }) {
+const AVATAR_PALETTES: { bg: string; color: string }[] = [
+  { bg: '#EDE7F6', color: '#5E35B1' },
+  { bg: '#FFF3E0', color: '#E65100' },
+  { bg: '#E0F2F1', color: '#00695C' },
+  { bg: '#FCE4EC', color: '#C2185B' },
+  { bg: '#E3F2FD', color: '#1565C0' },
+  { bg: '#F1F8E9', color: '#33691E' },
+  { bg: '#F3E5F5', color: '#6A1B9A' },
+  { bg: '#FBE9E7', color: '#BF360C' },
+  { bg: '#E0F7FA', color: '#006064' },
+  { bg: '#E8EAF6', color: '#283593' },
+];
+
+function namePalette(name: string) {
+  const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
+}
+
+function Avatar({ name, size = 38 }: { name: string; size?: number }) {
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const { bg, color } = namePalette(name);
   return (
-    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: grad, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <span style={{ fontSize: size * 0.34, fontWeight: 700, color: '#fff' }}>{initials}</span>
+    <div style={{ width: size, height: size, borderRadius: '50%', flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <span style={{ fontSize: size * 0.34, fontWeight: 800, color }}>{initials}</span>
     </div>
   );
 }
@@ -37,169 +52,125 @@ const STATUS_LABELS: Record<string, string> = {
   pending: 'Pending', 'in-progress': 'In Progress', ready: 'Ready', delivered: 'Delivered', cancelled: 'Cancelled',
 };
 
-export default function OrderCard({ order, onClick, onDelete }: Props) {
+export default function OrderCard({ order, onClick }: Props) {
   const { T } = useAppTheme();
-  const user   = useAuthStore((s) => s.user);
-  const isStaff = user?.role === 'staff';
 
   const [bill,    setBill]    = useState(false);
   const [pressed, setPressed] = useState(false);
-  const [swipeX,  setSwipeX]  = useState(0);
-  const [swiping, setSwiping] = useState(false);
-
-  const touchStartX = useRef<number | null>(null);
-  const touchStartY = useRef<number | null>(null);
-  const isHoriz     = useRef(false);
 
   const deliveryDate = order.deliveryDate;
-  const isOverdue = deliveryDate && isPast(deliveryDate) && order.status !== 'delivered' && order.status !== 'cancelled';
+  const isOverdue  = deliveryDate && isPast(deliveryDate) && order.status !== 'delivered' && order.status !== 'cancelled';
   const isDueToday = deliveryDate && isToday(deliveryDate);
-
-  function onTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX;
-    touchStartY.current = e.touches[0].clientY;
-    isHoriz.current = false;
-    setSwiping(false);
-  }
-
-  function onTouchMove(e: React.TouchEvent) {
-    if (touchStartX.current === null || touchStartY.current === null) return;
-    const dx = e.touches[0].clientX - touchStartX.current;
-    const dy = e.touches[0].clientY - touchStartY.current;
-    if (!isHoriz.current && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-    if (!isHoriz.current) isHoriz.current = Math.abs(dx) > Math.abs(dy);
-    if (!isHoriz.current) return;
-    e.preventDefault();
-    setSwiping(true);
-    const base  = swipeX;
-    let next    = base + dx;
-    next = Math.min(0, Math.max(-DELETE_WIDTH, next));
-    setSwipeX(next);
-  }
-
-  function onTouchEnd() {
-    touchStartX.current = null;
-    setSwiping(false);
-    setSwipeX(swipeX < -SNAP_THRESHOLD ? -DELETE_WIDTH : 0);
-  }
-
-  function handleCardClick() {
-    if (swipeX !== 0) { setSwipeX(0); return; }
-    onClick();
-  }
 
   const cardBg     = T.isDark ? 'rgba(26,21,48,0.8)' : T.card;
   const cardBorder = isOverdue ? 'rgba(211,47,47,.3)' : (T.isDark ? 'rgba(155,127,212,0.15)' : T.border);
-  const isOpen     = swipeX < -SNAP_THRESHOLD * 0.5;
   const sc         = STATUS_COLORS[order.status] || STATUS_COLORS.pending;
 
   return (
     <>
       <div style={{ position: 'relative', marginBottom: 10, borderRadius: T.r.lg, overflow: 'hidden' }}>
-        {/* Delete panel */}
-        {!isStaff && (
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 0, background: 'linear-gradient(135deg,#ff7979,#ff4545)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 3, borderRadius: T.r.lg, boxShadow: isOpen ? 'inset 2px 0 12px rgba(0,0,0,.15)' : 'none' }}>
-            <button
-              onClick={e => { e.stopPropagation(); onDelete(); setSwipeX(0); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 12px'}}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/>
-              </svg>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#fff', letterSpacing: '.04em' }}>Delete</span>
-            </button>
-          </div>
-        )}
 
         {/* Card */}
         <div
           style={{
             background: cardBg,
-            border: `1px solid rgba(0, 0, 0, 0.08)`,
+            border: `1.5px solid ${cardBorder}`,
             borderRadius: T.r.lg,
-            padding: '16px',
             fontFamily: T.fontBody,
             cursor: 'pointer',
-            backdropFilter: T.isDark ? 'blur(12px)' : 'none',
-            boxShadow: T.isDark ? '0 4px 24px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.05)' : T.sh.card,
-            transform: `translateX(${swipeX}px)`,
-            transition: swiping ? 'none' : 'transform .28s cubic-bezier(.4,0,.2,1)',
-            position: 'relative',
-            overflow: 'hidden',
-            willChange: 'transform',
-            scale: pressed && swipeX === 0 ? '0.982' : '1',
+            boxShadow: T.isDark ? '0 4px 24px rgba(0,0,0,.35)' : T.sh.card,
+            scale: pressed ? '0.982' : '1',
+            transition: 'scale .15s ease',
           }}
-          onClick={handleCardClick}
+          onClick={onClick}
           onMouseDown={() => setPressed(true)}
           onMouseUp={() => setPressed(false)}
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
+          onMouseLeave={() => setPressed(false)}
         >
-          {/* Card subtle gradient overlay */}
-          {/* <div style={{ position: 'absolute', inset: 0, background: T.grad.card, pointerEvents: 'none', borderRadius: 'inherit' }} /> */}
-          {/* Left accent bar */}
-          {/* <div style={{ position: 'absolute', left: 0, top: '15%', bottom: '15%', width: 3, borderRadius: '0 3px 3px 0', background: isOverdue ? 'linear-gradient(#c62828,#e53935)' : T.grad.brand, opacity: .8 }} /> */}
+          {/* ── Main body ── */}
+          <div style={{ padding: '14px 16px 12px' }}>
 
-          {/* Top row */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10, position: 'relative', paddingLeft: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-              <Avatar name={order.customerName} grad={T.grad.brand} />
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: T.text, letterSpacing: '-.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.customerName}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>#{order.orderNumber}</span>
-                  {order.customerPhone && <span style={{ fontSize: 11, color: T.muted }}>· {order.customerPhone}</span>}
+            {/* Row 1: Avatar + Name + Status */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <Avatar name={order.memberName || order.customerName} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
+                  {order.memberName && order.memberName !== order.customerName ? order.memberName : order.customerName}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    #{order.orderNumber}
+                  </span>
+                  {order.customerPhone && (
+                    <>
+                      <span style={{ fontSize: 10, color: T.border }}>·</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: T.muted, flexShrink: 0 }}><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 1h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+                        <span style={{ fontSize: 11, color: T.muted }}>{order.customerPhone}</span>
+                      </span>
+                    </>
+                  )}
+                  {order.memberName && order.memberName !== order.customerName && (
+                    <span style={{ fontSize: 10, color: T.muted }}>· {order.customerName}</span>
+                  )}
                 </div>
               </div>
+              <div style={{ background: sc.bg, borderRadius: T.r.pill, padding: '4px 10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: sc.color }}>{STATUS_LABELS[order.status]}</span>
+              </div>
             </div>
-            <div style={{ background: sc.bg, borderRadius: T.r.pill, padding: '3px 9px', flexShrink: 0, display: 'flex' }}>
-              <span style={{ fontSize: 10, fontWeight: 700, color: sc.color }}>{STATUS_LABELS[order.status]}</span>
-            </div>
-          </div>
 
-          {/* Item chips */}
-          {/* {order.items.length > 0 && (
-            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10, paddingLeft: 8 }}>
-              {order.items.slice(0, 3).map((item, i) => (
-                <span key={i} style={{ fontSize: 11, background: 'rgba(123,94,167,.08)', color: T.violet.d, padding: '2px 8px', borderRadius: T.r.sm, border: `1px solid ${T.isDark ? 'rgba(155,127,212,0.2)' : T.violet.d + '22'}` }}>{item.garment}</span>
-              ))}
-              {order.items.length > 3 && (
-                <span style={{ fontSize: 11, color: T.muted, padding: '2px 6px' }}>+{order.items.length - 3}</span>
-              )}
-            </div>
-          )} */}
+            {/* Row 2: Garment chips */}
+            {/* {order.items.length > 0 && (
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 12 }}>
+                {order.items.slice(0, 3).map((item, i) => (
+                  <span key={i} style={{ fontSize: 11, fontWeight: 600, background: T.isDark ? 'rgba(155,127,212,0.1)' : T.violet.pale, color: T.violet.d, padding: '3px 9px', borderRadius: T.r.sm, border: `1px solid ${T.violet.d}22` }}>
+                    {item.garment}{item.qty > 1 ? ` ×${item.qty}` : ''}
+                  </span>
+                ))}
+                {order.items.length > 3 && (
+                  <span style={{ fontSize: 11, color: T.muted, padding: '3px 6px', fontWeight: 500 }}>+{order.items.length - 3} more</span>
+                )}
+              </div>
+            )} */}
 
-          {/* Bottom: amount + delivery */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingLeft: 8, position: 'relative' }}>
-            <div>
-              <span style={{ fontSize: 18, fontWeight: 800, background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-.01em' }}>
+            {/* Row 3: Amount + Balance */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '.5rem' }}>
+              <span style={{ fontSize: 20, fontWeight: 800, background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-.01em', lineHeight: 1 }}>
                 ₹{order.totalAmount.toLocaleString('en-IN')}
               </span>
-              {order.balanceAmount > 0 && (
-                <span style={{ marginLeft: 7, fontSize: 10, color: T.danger.text, background: T.danger.bg, padding: '3px 8px', borderRadius: T.r.pill, fontWeight: 700, border: `1px solid ${T.danger.border}` }}>
+              {order.balanceAmount > 0 ? (
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.danger.text, background: T.danger.bg, padding: '3px 9px', borderRadius: T.r.pill, border: `1px solid ${T.danger.border}` }}>
                   ₹{order.balanceAmount.toLocaleString('en-IN')} due
+                </span>
+              ) : order.status !== 'cancelled' && (
+                <span style={{ fontSize: 11, fontWeight: 600, color: T.success.text, background: T.success.bg, padding: '3px 9px', borderRadius: T.r.pill }}>
+                  Paid ✓
                 </span>
               )}
             </div>
           </div>
-          {deliveryDate && (
-              <div style={{ padding: '8px 8px 0 8px', opacity: 1, fontSize: 11, color: isOverdue ? 'rgba(26, 22, 37, 0.45)' : isDueToday ? T.warning.text : T.muted }}>
-                🗓 {isOverdue ? 'Overdue ' : isDueToday ? 'Today ' : ''}{format(deliveryDate, 'd MMM')}
-              </div>
-            )}
 
-          {/* WhatsApp Bill button — absolute bottom-right */}
-          <button
-            onClick={e => { e.stopPropagation(); setBill(true); }}
-            style={{ background: 'linear-gradient(135deg,#25D366,#128C7E)', border: 'none', borderRadius: T.r.md, padding: '7px 13px', fontSize: 12, fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: T.fontBody, boxShadow: '0 4px 14px rgba(37,211,102,.25)', position: 'absolute', right: 16, bottom: 16 }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z" />
-              <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.121 1.535 5.857L.057 23.428a.75.75 0 00.916.916l5.571-1.478A11.95 11.95 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.951 9.951 0 01-5.187-1.453l-.371-.22-3.307.877.877-3.307-.22-.371A9.951 9.951 0 012 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z" />
-            </svg>
-            Bill
-          </button>
+          {/* ── Footer bar ── */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: `1px solid ${T.border}`, background: T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: `0 0 ${T.r.lg} ${T.r.lg}` }}>
+            {/* Delivery date */}
+            <div style={{ fontSize: 11, fontWeight: 600, color: isOverdue ? T.danger.text : isDueToday ? T.warning.text : T.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              {deliveryDate
+                ? (isOverdue ? 'Overdue · ' : isDueToday ? 'Due today · ' : '') + format(deliveryDate, 'd MMM yyyy')
+                : <span style={{ color: T.muted, fontWeight: 400 }}>No delivery date</span>
+              }
+            </div>
+
+            {/* WhatsApp bill button */}
+            <button
+              onClick={e => { e.stopPropagation(); setBill(true); }}
+              style={{ background: '#25D366', border: 'none', borderRadius: T.r.sm, padding: '5px 11px', fontSize: 11, fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: T.fontBody }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.149-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.134.558 4.136 1.535 5.875L0 24l6.306-1.504A11.94 11.94 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.814 9.814 0 01-4.964-1.346l-.356-.212-3.741.892.945-3.617-.232-.373A9.79 9.79 0 012.182 12c0-5.421 4.397-9.818 9.818-9.818s9.818 4.397 9.818 9.818-4.397 9.818-9.818 9.818z"/></svg>
+              Bill
+            </button>
+          </div>
         </div>
       </div>
 

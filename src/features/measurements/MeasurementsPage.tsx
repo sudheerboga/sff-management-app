@@ -118,7 +118,7 @@ export default function MeasurementsPage() {
                   fontFamily: T.fontBody, cursor: 'pointer',
                   transition: 'box-shadow .18s',
                 }}
-                onClick={() => navigate(`/measurements/edit/${m.id}`, { state: { measurement: m } })}
+                onClick={() => navigate(`/measurements/view/${m.id}`, { state: { measurement: m } })}
               >
                 {/* Name + actions */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>

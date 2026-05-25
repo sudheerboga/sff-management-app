@@ -5,6 +5,9 @@ import { Order } from '@/types';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { openWhatsAppBill } from '@/utils/whatsapp';
+import { useMeasurements } from '@/features/measurements/hooks/useMeasurements';
+import { useOrders } from '@/features/orders/hooks/useOrders';
+import { useNavigate } from 'react-router-dom';
 
 const STATUSES: { v: Order['status']; label: string }[] = [
   { v: 'pending',     label: 'Pending'     },
@@ -28,8 +31,27 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
   const user    = useAuthStore((s) => s.user);
   const isStaff = user?.role === 'staff';
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const navigate = useNavigate();
+  const { query: measurementsQuery } = useMeasurements();
+  const { addPaymentMutation, updateMaterialCostMutation } = useOrders();
+
+  const [payFormOpen,  setPayFormOpen]  = useState(false);
+  const [payAmount,    setPayAmount]    = useState('');
+  const [payDate,      setPayDate]      = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [payNote,      setPayNote]      = useState('');
+  const [matFormOpen,  setMatFormOpen]  = useState(false);
+  const [matCostValue, setMatCostValue] = useState('');
 
   if (!order) return null;
+
+  // Find measurements for this specific order member
+  const allMeasurements = measurementsQuery.data || [];
+  const memberMeasurements = order.customerId
+    ? allMeasurements.filter((m) =>
+        m.customerId === order.customerId &&
+        (order.memberId ? m.memberId === order.memberId : m.memberName === order.memberName),
+      )
+    : allMeasurements.filter((m) => m.customerPhone === order.customerPhone);
 
   const allImages = order.items.flatMap((item) =>
     (item.images || []).map((img) => ({ ...img, itemName: item.garment })),
@@ -76,7 +98,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       }}
     >
       {/* ── Header ── */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody }}>
+      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody, background: '#aea9a31f' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.2 }}>
@@ -201,22 +223,250 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           </div>
         )}
 
+        {/* Customer Measurements — tap to view/edit */}
+        <button
+          onClick={() => {
+            onClose();
+            if (memberMeasurements.length > 0) {
+              navigate(`/measurements/view/${memberMeasurements[0].id}`, { state: { measurement: memberMeasurements[0] } });
+            } else {
+              navigate('/measurements/new', { state: { prefillPhone: order.customerPhone } });
+            }
+          }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: rowBg, border: `1px solid ${T.border}`, borderRadius: T.r.md, cursor: 'pointer', fontFamily: T.fontBody }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <svg width="14" height="14" fill="none" stroke={T.violet.d} strokeWidth="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="18" x2="13" y2="18"/></svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
+              {order.memberName && order.memberName !== order.customerName
+                ? `${order.memberName}'s Measurements`
+                : 'Customer Measurements'}
+            </span>
+            {memberMeasurements.length > 0 ? (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: T.r.pill, background: isDark ? 'rgba(74,111,212,0.15)' : T.blue.pale, color: T.blue.d }}>
+                {Object.keys(memberMeasurements[0].garments).length} garments · View
+              </span>
+            ) : (
+              <span style={{ fontSize: 10, fontWeight: 600, color: T.muted }}>Tap to add</span>
+            )}
+          </div>
+          <svg width="14" height="14" fill="none" stroke={T.muted} strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+            <path d="M9 18l6-6-6-6"/>
+          </svg>
+        </button>
+
         {/* Payment */}
-        <div style={{ background: rowBg, borderRadius: T.r.md, padding: '12px 14px', border: `1px solid ${T.border}` }}>
-          <span style={secLabel}>Payment</span>
-          <Row label="Total Amount" value={`₹${order.totalAmount.toLocaleString('en-IN')}`} />
-          {divider}
-          <Row label="Amount Paid"  value={`₹${order.paidAmount.toLocaleString('en-IN')}`}  valueColor={T.success.text} />
-          {divider}
-          <Row label="Balance Due"  value={`₹${order.balanceAmount.toLocaleString('en-IN')}`} valueColor={order.balanceAmount > 0 ? T.danger.text : T.success.text} />
-          <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
-          {order.materialCost > 0 && (
-            <>
-              <Row label="Material Cost" value={`₹${order.materialCost.toLocaleString('en-IN')}`} valueColor={T.muted} />
-              {divider}
-            </>
+        <div style={{ borderRadius: T.r.md, border: `1px solid ${T.border}`, backgroundColor: 'white' }}>
+
+          {/* ── Top: Total Bill + Balance Due highlighted ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+            <div style={{ padding: '14px 16px', borderRight: `1px solid ${T.border}`, borderRadius: `${T.r.md} 0 0 0` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Total Bill</div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: T.text, fontFamily: T.fontBody, lineHeight: 1 }}>
+                ₹{order.totalAmount.toLocaleString('en-IN')}
+              </div>
+            </div>
+            <div style={{ padding: '14px 16px', background: order.balanceAmount > 0 ? `${T.danger.text}12` : `${T.success.text}12`, borderRadius: `0 14px 0 0` }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: order.balanceAmount > 0 ? T.danger.text : T.success.text, textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4}}>
+                {order.balanceAmount > 0 ? 'Balance Due' : 'Fully Paid'}
+              </div>
+              <div style={{ fontSize: 22, fontWeight: 800, color: order.balanceAmount > 0 ? T.danger.text : T.success.text, fontFamily: T.fontBody, lineHeight: 1 }}>
+                ₹{order.balanceAmount > 0 ? order.balanceAmount.toLocaleString('en-IN') : '0'}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Progress bar ── */}
+          {order.totalAmount > 0 && (
+            <div style={{ padding: '10px 16px 0', borderTop: `1px solid ${T.border}` }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+                <span style={{ fontSize: 11, color: T.muted, fontFamily: T.fontBody }}>Paid ₹{order.paidAmount.toLocaleString('en-IN')}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: T.success.text, fontFamily: T.fontBody }}>
+                  {Math.round((order.paidAmount / order.totalAmount) * 100)}%
+                </span>
+              </div>
+              <div style={{ height: 6, borderRadius: 3, background: T.border, overflow: 'hidden', marginBottom: 12 }}>
+                <div style={{ height: '100%', borderRadius: 3, background: order.balanceAmount > 0 ? T.success.text : T.success.text, width: `${Math.min(100, Math.round((order.paidAmount / order.totalAmount) * 100))}%`, transition: 'width .3s ease' }} />
+              </div>
+            </div>
           )}
-          <Row label="Profit" value={`₹${profit.toLocaleString('en-IN')}`} valueColor={profit >= 0 ? T.success.text : T.danger.text} />
+
+          {/* ── Payment history + Add button ── */}
+          <div style={{ padding: '12px 16px', borderTop: `1px solid ${T.border}` }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: order.payments?.length ? 12 : 0 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.08em' }}>
+                Payment History
+              </span>
+              <button
+                onClick={() => { setPayFormOpen((v) => !v); setPayAmount(''); setPayDate(format(new Date(), 'yyyy-MM-dd')); setPayNote(''); }}
+                style={{ fontSize: 12, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}14`, border: `1px solid ${T.violet.d}33`, borderRadius: T.r.sm, padding: '4px 10px', cursor: 'pointer', fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 5 }}
+              >
+                <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Payment
+              </button>
+            </div>
+
+            {/* Timeline */}
+            {order.payments && order.payments.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                {order.payments.map((p, i) => (
+                  <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 2 }}>
+                      <div style={{ width: 10, height: 10, borderRadius: '50%', background: T.success.text, border: `2px solid ${T.success.text}33`, flexShrink: 0 }} />
+                      {i < order.payments.length - 1 && (
+                        <div style={{ width: 2, height: 28, background: T.border, borderRadius: 1 }} />
+                      )}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0, paddingBottom: i < order.payments.length - 1 ? 4 : 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 14, fontWeight: 700, color: T.success.text, fontFamily: T.fontBody }}>
+                          ₹{p.amount.toLocaleString('en-IN')}
+                        </span>
+                        <span style={{ fontSize: 11, color: T.muted }}>{format(p.date, 'd MMM yyyy')}</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                        {p.note && <span style={{ fontSize: 11, color: T.text2, fontStyle: 'italic' }}>{p.note}</span>}
+                        {p.note && <span style={{ color: T.border }}>·</span>}
+                        <span style={{ fontSize: 10, color: T.muted }}>{p.recordedBy}</span>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: T.r.pill, background: p.recordedByRole === 'staff' ? `${T.blue.d}18` : `${T.violet.d}14`, color: p.recordedByRole === 'staff' ? T.blue.d : T.violet.d, textTransform: 'capitalize' }}>
+                          {p.recordedByRole || 'admin'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              !payFormOpen && (
+                <div style={{ fontSize: 12, color: T.muted, textAlign: 'center', padding: '8px 0', fontStyle: 'italic' }}>No payments recorded yet</div>
+              )
+            )}
+
+            {/* Inline add-payment form */}
+            {payFormOpen && (
+              <div style={{ marginTop: order.payments?.length ? 12 : 0, borderTop: order.payments?.length ? `1px solid ${T.border}` : 'none', paddingTop: order.payments?.length ? 12 : 0, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Amount (₹)</div>
+                    <input
+                      type="number"
+                      placeholder="0"
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Date</div>
+                    <input
+                      type="date"
+                      value={payDate}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Note (optional)</div>
+                  <input
+                    type="text"
+                    placeholder="e.g. Advance, Final payment…"
+                    value={payNote}
+                    onChange={(e) => setPayNote(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => setPayFormOpen(false)}
+                    style={{ flex: 1, padding: '9px 0', borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', color: T.text2, fontSize: 13, fontWeight: 600, fontFamily: T.fontBody, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!payAmount || Number(payAmount) <= 0 || addPaymentMutation.isPending}
+                    onClick={async () => {
+                      const entry = {
+                        id: Date.now().toString(36),
+                        amount: Number(payAmount),
+                        date: new Date(payDate),
+                        note: payNote.trim(),
+                        recordedBy: user?.name || '',
+                        recordedById: user?.uid || '',
+                        recordedByRole: user?.role || 'admin',
+                      };
+                      const updated = [...(order.payments || []), entry];
+                      await addPaymentMutation.mutateAsync({ orderId: order.id, payments: updated, totalAmount: order.totalAmount });
+                      setPayFormOpen(false);
+                    }}
+                    style={{ flex: 2, padding: '9px 0', borderRadius: T.r.sm, border: 'none', background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', opacity: (!payAmount || Number(payAmount) <= 0) ? 0.5 : 1 }}
+                  >
+                    {addPaymentMutation.isPending ? 'Saving…' : 'Save Payment'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Material Cost + Profit ── */}
+          <div style={{ borderTop: `1px solid ${T.border}`, borderRadius: `0 0 ${T.r.md} ${T.r.md}` }}>
+            {/* Material cost row */}
+            <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 12, color: T.muted, fontFamily: T.fontBody }}>
+                Material Cost
+                {order.materialCost > 0 && (
+                  <span style={{ fontWeight: 700, color: T.text2, marginLeft: 6 }}>₹{order.materialCost.toLocaleString('en-IN')}</span>
+                )}
+              </span>
+              <button
+                onClick={() => { setMatFormOpen((v) => !v); setMatCostValue(order.materialCost ? String(order.materialCost) : ''); }}
+                style={{ fontSize: 11, fontWeight: 600, color: T.muted, background: 'none', border: `1px solid ${T.border}`, borderRadius: T.r.sm, padding: '3px 8px', cursor: 'pointer', fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 4 }}
+              >
+                <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                {order.materialCost > 0 ? 'Edit' : 'Add'}
+              </button>
+            </div>
+
+            {/* Inline material cost form */}
+            {matFormOpen && (
+              <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Amount (₹)</div>
+                  <input
+                    type="number"
+                    placeholder="0"
+                    value={matCostValue}
+                    onChange={(e) => setMatCostValue(e.target.value)}
+                    style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                  />
+                </div>
+                <button
+                  onClick={() => setMatFormOpen(false)}
+                  style={{ padding: '8px 12px', borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', color: T.text2, fontSize: 13, fontWeight: 600, fontFamily: T.fontBody, cursor: 'pointer', flexShrink: 0 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={updateMaterialCostMutation.isPending}
+                  onClick={async () => {
+                    await updateMaterialCostMutation.mutateAsync({ orderId: order.id, materialCost: Number(matCostValue) || 0, totalAmount: order.totalAmount });
+                    setMatFormOpen(false);
+                  }}
+                  style={{ padding: '8px 14px', borderRadius: T.r.sm, border: 'none', background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', flexShrink: 0 }}
+                >
+                  {updateMaterialCostMutation.isPending ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            )}
+
+            {/* Profit row */}
+            <div style={{ padding: matFormOpen ? '0 16px 10px' : '0 16px 10px', borderTop: `1px dashed ${T.border}`, margin: '0 16px', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: T.muted, fontFamily: T.fontBody }}>Profit</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: profit >= 0 ? T.success.text : T.danger.text, fontFamily: T.fontBody }}>
+                ₹{profit.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Meta */}

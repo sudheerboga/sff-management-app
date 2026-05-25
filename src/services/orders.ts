@@ -13,7 +13,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
-import { Order, OrderItem, OrderStatus } from '@/types';
+import { Order, OrderItem, OrderStatus, PaymentEntry } from '@/types';
 import { softDelete } from './softDelete';
 
 function ordersCol(boutiqueId: string) {
@@ -37,12 +37,24 @@ function fromFirestore(id: string, data: Record<string, unknown>): Order {
     id,
     orderNumber: data.orderNumber as string || id.slice(-6).toUpperCase(),
     boutiqueId: data.boutiqueId as string || '',
+    customerId: data.customerId as string || '',
+    memberName: data.memberName as string || (data.customerName as string) || '',
+    memberId: data.memberId as string | undefined,
     customerName: data.customerName as string || '',
     customerPhone: data.customerPhone as string || '',
     items: (data.items as OrderItem[]) || [],
     totalAmount: data.totalAmount as number || 0,
     totalProfit: data.totalProfit as number || 0,
     materialCost: data.materialCost as number || 0,
+    payments: ((data.payments as Record<string, unknown>[]) || []).map((p) => ({
+      id: p.id as string || '',
+      amount: p.amount as number || 0,
+      date: p.date instanceof Timestamp ? p.date.toDate() : new Date(p.date as string),
+      note: p.note as string || '',
+      recordedBy: p.recordedBy as string || '',
+      recordedById: p.recordedById as string || '',
+      recordedByRole: p.recordedByRole as string || 'admin',
+    })) as PaymentEntry[],
     paidAmount: data.paidAmount as number || 0,
     balanceAmount: data.balanceAmount as number || 0,
     status: data.status as OrderStatus || 'pending',
@@ -71,6 +83,9 @@ export async function getOrder(boutiqueId: string, orderId: string): Promise<Ord
 
 export interface CreateOrderData {
   boutiqueName: string;
+  customerId: string;
+  memberName: string;
+  memberId?: string;
   customerName: string;
   customerPhone: string;
   items: OrderItem[];
@@ -89,12 +104,24 @@ export async function createOrder(boutiqueId: string, data: CreateOrderData): Pr
   const ref = await addDoc(ordersCol(boutiqueId), {
     orderNumber,
     boutiqueId,
+    customerId: data.customerId,
+    memberName: data.memberName,
+    memberId: data.memberId || null,
     customerName: data.customerName,
     customerPhone: data.customerPhone,
     items: data.items,
     totalAmount,
     totalProfit: totalAmount - (data.materialCost || 0),
     materialCost: data.materialCost || 0,
+    payments: data.paidAmount > 0 ? [{
+      id: Date.now().toString(36),
+      amount: data.paidAmount,
+      date: data.orderDate || new Date(),
+      note: 'Advance',
+      recordedBy: data.createdByName,
+      recordedById: data.createdBy,
+      recordedByRole: 'admin',
+    }] : [],
     paidAmount: data.paidAmount,
     balanceAmount: totalAmount - data.paidAmount,
     status: 'pending' as OrderStatus,
@@ -140,6 +167,34 @@ export async function updateOrder(
     update.totalProfit = (update.totalAmount as number) - materialCost;
   }
   await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS, orderId), update);
+}
+
+export async function updateMaterialCost(
+  boutiqueId: string,
+  orderId: string,
+  materialCost: number,
+  totalAmount: number,
+): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS, orderId), {
+    materialCost,
+    totalProfit: totalAmount - materialCost,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+export async function addPaymentEntry(
+  boutiqueId: string,
+  orderId: string,
+  payments: PaymentEntry[],
+  totalAmount: number,
+): Promise<void> {
+  const paidAmount = payments.reduce((s, p) => s + p.amount, 0);
+  await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS, orderId), {
+    payments: payments.map((p) => ({ ...p, date: Timestamp.fromDate(p.date) })),
+    paidAmount,
+    balanceAmount: totalAmount - paidAmount,
+    updatedAt: serverTimestamp(),
+  });
 }
 
 export async function deleteOrder(boutiqueId: string, orderId: string, deletedBy: string, deletedByName: string): Promise<void> {
