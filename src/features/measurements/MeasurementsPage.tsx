@@ -10,6 +10,7 @@ import EmptyState from '@/components/common/EmptyState';
 import PageHeader from '@/components/common/PageHeader';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { buildMeasurementMessage, shareMeasurementWhatsApp } from '@/utils/whatsapp';
 
 export default function MeasurementsPage() {
@@ -58,14 +59,15 @@ export default function MeasurementsPage() {
   }, [measurements, search]);
 
   const isStaff = user?.role === 'staff';
+  const { isReadOnly } = usePlanStatus();
 
   return (
     <Box>
       <PageHeader
         title="Measurements"
         subtitle={`${measurements.length} customers`}
-        actionLabel={isStaff ? undefined : 'New Measurement'}
-        onAction={isStaff ? undefined : () => navigate('/measurements/new')}
+        actionLabel={isStaff || isReadOnly ? undefined : 'New Measurement'}
+        onAction={isStaff || isReadOnly ? undefined : () => navigate('/measurements/new')}
       />
 
       {/* Search */}
@@ -102,7 +104,7 @@ export default function MeasurementsPage() {
           icon={<StraightenIcon />}
           title={search ? 'No results' : 'No measurements yet'}
           description={search ? 'Try a different name or phone number' : 'Add your first customer measurement to get started'}
-          actionLabel={!isStaff && !search ? 'Add Measurement' : undefined}
+          actionLabel={!isStaff && !isReadOnly && !search ? 'Add Measurement' : undefined}
           onAction={() => navigate('/measurements/new')}
         />
       ) : (
@@ -126,7 +128,7 @@ export default function MeasurementsPage() {
                       <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{m.customerPhone}</div>
                     )}
                   </div>
-                  {!isStaff && (
+                  {!isStaff && !isReadOnly && (
                     <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 8 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); navigate(`/measurements/edit/${m.id}`, { state: { measurement: m } }); }}
@@ -190,7 +192,7 @@ export default function MeasurementsPage() {
         </Grid>
       )}
 
-      {!isStaff && (
+      {!isStaff && !isReadOnly && (
         <Fab size="medium" onClick={() => navigate('/measurements/new')}
           sx={{ position: 'fixed', bottom: 24, right: 24, display: { xs: 'none', md: 'flex' } }}>
           <AddIcon />

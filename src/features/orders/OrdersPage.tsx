@@ -7,12 +7,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOrders } from './hooks/useOrders';
 import OrderCard from './components/OrderCard';
 import OrderDetailDrawer from './components/OrderDetailDrawer';
+import OrdersFilterSheet, { OrderFilters } from './components/OrdersFilterSheet';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import EmptyState from '@/components/common/EmptyState';
 import PageHeader from '@/components/common/PageHeader';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Order, OrderStatus } from '@/types';
 
 export default function OrdersPage() {
@@ -21,12 +23,13 @@ export default function OrdersPage() {
   const { query, statusMutation, deleteMutation } = useOrders();
   const orders = query.data || [];
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
 
   const newOrderOpen = useUiStore((s) => s.newOrderOpen);
   const setNewOrderOpen = useUiStore((s) => s.setNewOrderOpen);
@@ -70,14 +73,34 @@ export default function OrdersPage() {
   };
 
   const isStaff = user?.role === 'staff';
+  const { isReadOnly } = usePlanStatus();
+
+  const handleApplyFilters = (f: OrderFilters) => {
+    const p = new URLSearchParams();
+    if (f.datePreset !== 'all') p.set('date', f.datePreset);
+    if (f.datePreset === 'custom') {
+      if (f.dateFrom) p.set('from', f.dateFrom);
+      if (f.dateTo)   p.set('to',   f.dateTo);
+    }
+    if (f.status !== 'all') p.set('status', f.status);
+    setSearchParams(p);
+    setFilterOpen(false);
+  };
+
+  const currentFilters: OrderFilters = {
+    datePreset: (datePreset as OrderFilters['datePreset']),
+    dateFrom,
+    dateTo,
+    status: statusFilter,
+  };
 
   return (
     <Box>
       <PageHeader
         title="Orders"
         subtitle={`${orders.length} total`}
-        actionLabel={isStaff ? undefined : 'New Order'}
-        onAction={isStaff ? undefined : () => navigate('/dashboard/new')}
+        actionLabel={isStaff || isReadOnly ? undefined : 'New Order'}
+        onAction={isStaff || isReadOnly ? undefined : () => navigate('/dashboard/new')}
       />
 
       {/* ── Search + Filter row ── */}
@@ -102,7 +125,7 @@ export default function OrdersPage() {
           />
         </div>
         <button
-          onClick={() => navigate(`/dashboard/filters?${searchParams.toString()}`)}
+          onClick={() => setFilterOpen(true)}
           style={{
             display: 'flex', alignItems: 'center', gap: 7,
             padding: '11px 16px', flexShrink: 0,
@@ -145,7 +168,7 @@ export default function OrdersPage() {
           icon={<AssignmentIcon />}
           title={search || hasFilters ? 'No orders found' : 'No orders yet'}
           description={search ? 'Try a different search term' : hasFilters ? 'No orders match this filter' : 'Create your first order to get started'}
-          actionLabel={!isStaff && !search && !hasFilters ? 'Create Order' : undefined}
+          actionLabel={!isStaff && !isReadOnly && !search && !hasFilters ? 'Create Order' : undefined}
           onAction={() => navigate('/dashboard/new')}
         />
       ) : (
@@ -164,7 +187,7 @@ export default function OrdersPage() {
         </Grid>
       )}
 
-      {!isStaff && (
+      {!isStaff && !isReadOnly && (
         <Fab size="medium" onClick={() => navigate('/dashboard/new')}
           sx={{ position: 'fixed', bottom: 24, right: 24, display: { xs: 'none', md: 'flex' } }}>
           <AddIcon />
@@ -191,6 +214,13 @@ export default function OrdersPage() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteId(null)}
         loading={deleteMutation.isPending}
+      />
+
+      <OrdersFilterSheet
+        open={filterOpen}
+        initial={currentFilters}
+        onClose={() => setFilterOpen(false)}
+        onApply={handleApplyFilters}
       />
     </Box>
   );

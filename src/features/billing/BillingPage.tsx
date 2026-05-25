@@ -17,6 +17,7 @@ import EmptyState from '@/components/common/EmptyState';
 import PageHeader from '@/components/common/PageHeader';
 import { PaymentStatusChip } from '@/components/common/StatusChip';
 import { useAuthStore } from '@/stores/authStore';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Bill, PaymentStatus } from '@/types';
 
 export default function BillingPage() {
@@ -30,6 +31,7 @@ export default function BillingPage() {
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const isStaff = user?.role === 'staff';
+  const { isReadOnly } = usePlanStatus();
 
   const filtered = useMemo(() => {
     let list = bills;
@@ -77,8 +79,8 @@ export default function BillingPage() {
       <PageHeader
         title="Billing"
         subtitle={`₹${totalRevenue.toLocaleString()} collected · ₹${totalBalance.toLocaleString()} pending`}
-        actionLabel={isStaff ? undefined : 'New Bill'}
-        onAction={isStaff ? undefined : () => setCreateOpen(true)}
+        actionLabel={isStaff || isReadOnly ? undefined : 'New Bill'}
+        onAction={isStaff || isReadOnly ? undefined : () => setCreateOpen(true)}
       />
 
       <Box sx={{ display: 'flex', gap: 1.5, mb: 2, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -115,7 +117,7 @@ export default function BillingPage() {
           icon={<ReceiptIcon />}
           title={search || filter !== 'all' ? 'No bills found' : 'No bills yet'}
           description="Create a bill to get started"
-          actionLabel={!isStaff && !search && filter === 'all' ? 'Create Bill' : undefined}
+          actionLabel={!isStaff && !isReadOnly && !search && filter === 'all' ? 'Create Bill' : undefined}
           onAction={() => setCreateOpen(true)}
         />
       ) : (
@@ -133,7 +135,7 @@ export default function BillingPage() {
         </Grid>
       )}
 
-      {!isStaff && (
+      {!isStaff && !isReadOnly && (
         <Fab size="medium" onClick={() => setCreateOpen(true)} sx={{ position: 'fixed', bottom: { xs: 84, md: 24 }, right: 24 }}>
           <AddIcon />
         </Fab>

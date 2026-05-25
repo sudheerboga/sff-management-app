@@ -9,6 +9,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { useAuthStore } from '@/stores/authStore';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { getStaffMembers, inviteStaff, toggleStaffStatus, getPendingInvites } from '@/services/staff';
 import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
@@ -20,6 +21,7 @@ export default function StaffPage() {
   const { enqueueSnackbar } = useSnackbar();
   const qc = useQueryClient();
 
+  const { isReadOnly } = usePlanStatus();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteName, setInviteName] = useState('');
   const [invitePhone, setInvitePhone] = useState('+91');
@@ -65,9 +67,9 @@ export default function StaffPage() {
       <PageHeader
         title="Staff"
         subtitle={`${staff.length} active · ${pendingInvites.length} pending login`}
-        actionLabel="Invite Staff"
-        actionIcon={<AddIcon />}
-        onAction={() => setInviteOpen(true)}
+        actionLabel={isReadOnly ? undefined : 'Invite Staff'}
+        actionIcon={isReadOnly ? undefined : <AddIcon />}
+        onAction={isReadOnly ? undefined : () => setInviteOpen(true)}
       />
 
       {isLoading ? null : staff.length === 0 && pendingInvites.length === 0 ? (
@@ -75,8 +77,8 @@ export default function StaffPage() {
           icon={<PeopleIcon />}
           title="No staff yet"
           description="Invite your team members. They can log in with their phone number after being invited."
-          actionLabel="Invite Staff"
-          onAction={() => setInviteOpen(true)}
+          actionLabel={isReadOnly ? undefined : 'Invite Staff'}
+          onAction={isReadOnly ? undefined : () => setInviteOpen(true)}
         />
       ) : (
         <Grid container spacing={1.5}>

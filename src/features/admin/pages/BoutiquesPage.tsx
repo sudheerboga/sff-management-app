@@ -13,6 +13,8 @@ import CardMembershipIcon from '@mui/icons-material/CardMembership';
 import CloudIcon from '@mui/icons-material/Cloud';
 import TuneIcon from '@mui/icons-material/Tune';
 import BrushIcon from '@mui/icons-material/Brush';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useSnackbar } from 'notistack';
 import { format } from 'date-fns';
@@ -66,7 +68,11 @@ export default function BoutiquesPage() {
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: Boutique['status'] }) => updateBoutiqueStatus(id, status),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['admin-boutiques'] }); enqueueSnackbar('Status updated', { variant: 'success' }); },
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', id] });
+      enqueueSnackbar('Status updated', { variant: 'success' });
+    },
   });
 
   const cloudMutation = useMutation({
@@ -104,6 +110,38 @@ export default function BoutiquesPage() {
       enqueueSnackbar('Subscription updated', { variant: 'success' });
       setPlanDialogOpen(false);
     },
+  });
+
+  const expirePlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const yesterday = new Date(Date.now() - 86400000);
+      await updateBoutiqueSubscription(id, {
+        ...boutiques.find((b) => b.id === id)!.subscription,
+        expiresAt: yesterday,
+        isActive: false,
+      });
+    },
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', id] });
+      enqueueSnackbar('Plan expired', { variant: 'warning' });
+    },
+    onError: () => enqueueSnackbar('Failed to expire plan', { variant: 'error' }),
+  });
+
+  const renewPlanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const b = boutiques.find((bb) => bb.id === id)!;
+      const days = PLAN_OPTIONS.find((p) => p.key === b.subscription.plan)?.days ?? 30;
+      const expiresAt = days > 0 ? new Date(Date.now() + days * 86400000) : null;
+      await updateBoutiqueSubscription(id, { ...b.subscription, expiresAt, isActive: true });
+    },
+    onSuccess: (_, id) => {
+      qc.invalidateQueries({ queryKey: ['admin-boutiques'] });
+      qc.invalidateQueries({ queryKey: ['boutique', id] });
+      enqueueSnackbar('Plan renewed', { variant: 'success' });
+    },
+    onError: () => enqueueSnackbar('Failed to renew plan', { variant: 'error' }),
   });
 
   const featuresMutation = useMutation({
@@ -207,13 +245,18 @@ export default function BoutiquesPage() {
                       variant={boutique.subscription.plan !== 'free' ? 'filled' : 'outlined'}
                       sx={{ height: 22, fontSize: 11 }}
                     />
-                    {boutique.subscription.expiresAt && (
-                      <Chip
-                        label={`Exp: ${format(boutique.subscription.expiresAt, 'd MMM yyyy')}`}
-                        size="small"
-                        sx={{ height: 22, fontSize: 11 }}
-                      />
-                    )}
+                    {boutique.subscription.expiresAt && (() => {
+                      const expired = boutique.subscription.expiresAt < new Date();
+                      return (
+                        <Chip
+                          label={expired ? 'Expired' : `Exp: ${format(boutique.subscription.expiresAt, 'd MMM yyyy')}`}
+                          size="small"
+                          color={expired ? 'error' : 'default'}
+                          variant={expired ? 'filled' : 'outlined'}
+                          sx={{ height: 22, fontSize: 11 }}
+                        />
+                      );
+                    })()}
                   </Box>
 
                   <Typography variant="caption" color="text.disabled">
@@ -257,6 +300,25 @@ export default function BoutiquesPage() {
           <ListItemIcon><CardMembershipIcon fontSize="small" color="primary" /></ListItemIcon>
           Manage Subscription
         </MenuItem>
+        {menuBoutique?.subscription.expiresAt && menuBoutique.subscription.expiresAt < new Date() ? (
+          <MenuItem
+            onClick={() => { renewPlanMutation.mutate(menuBoutique!.id); setMenuAnchor(null); }}
+            dense
+            disabled={renewPlanMutation.isPending}
+          >
+            <ListItemIcon><RefreshIcon fontSize="small" color="success" /></ListItemIcon>
+            Renew Plan
+          </MenuItem>
+        ) : (
+          <MenuItem
+            onClick={() => { expirePlanMutation.mutate(menuBoutique!.id); setMenuAnchor(null); }}
+            dense
+            disabled={expirePlanMutation.isPending || menuBoutique?.subscription.plan === 'free'}
+          >
+            <ListItemIcon><EventBusyIcon fontSize="small" color="warning" /></ListItemIcon>
+            Expire Plan
+          </MenuItem>
+        )}
         <MenuItem
           onClick={() => {
             setMenuAnchor(null);
