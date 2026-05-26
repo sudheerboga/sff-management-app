@@ -3,7 +3,7 @@ import { Box, Fab, Grid, Skeleton } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useOrders } from './hooks/useOrders';
 import OrderCard from './components/OrderCard';
 import OrderDetailDrawer from './components/OrderDetailDrawer';
@@ -23,6 +23,7 @@ export default function OrdersPage() {
   const { query, statusMutation, deleteMutation } = useOrders();
   const orders = query.data || [];
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
@@ -36,6 +37,16 @@ export default function OrdersPage() {
   useEffect(() => {
     if (newOrderOpen) { navigate('/dashboard/new'); setNewOrderOpen(false); }
   }, [newOrderOpen, setNewOrderOpen, navigate]);
+
+  // Auto-open drawer when navigated here with a specific order id (e.g. from Customers page)
+  useEffect(() => {
+    const openOrderId = (location.state as { openOrderId?: string } | null)?.openOrderId;
+    if (!openOrderId || !query.data) return;
+    const order = query.data.find((o) => o.id === openOrderId);
+    if (order) { setSelectedOrder(order); setDetailOpen(true); }
+    // Clear the state so back-navigation doesn't re-open
+    navigate(location.pathname, { replace: true, state: {} });
+  }, [location.state, query.data]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep selectedOrder in sync when query re-fetches (e.g. after payment added)
   useEffect(() => {
@@ -126,6 +137,7 @@ export default function OrdersPage() {
             placeholder="Search by name or phone…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
             style={{
               width: '100%', padding: '11px 14px 11px 38px',
               border: `1.5px solid ${T.border}`, borderRadius: T.r.md,

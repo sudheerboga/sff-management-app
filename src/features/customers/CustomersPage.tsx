@@ -149,7 +149,12 @@ export default function CustomersPage() {
                       </div>
                     )}
 
-                    {/* Stats row */}
+                   
+                  </div>
+
+                  <svg width="16" height="16" fill="none" stroke={T.muted} strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 2 }}><path d="M9 18l6-6-6-6"/></svg>
+                </div>
+                 {/* Stats row */}
                     <div style={{ display: 'flex', gap: 12 }}>
                       <span style={{ fontSize: 11, color: T.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
                         <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
@@ -165,10 +170,6 @@ export default function CustomersPage() {
                         </span>
                       )}
                     </div>
-                  </div>
-
-                  <svg width="16" height="16" fill="none" stroke={T.muted} strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: 2 }}><path d="M9 18l6-6-6-6"/></svg>
-                </div>
               </div>
             );
           })}
@@ -208,6 +209,7 @@ interface DrawerProps {
 
 function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOrder, onNewMeasurement }: DrawerProps) {
   const { T, isDark } = useAppTheme();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<'orders' | 'measurements'>('orders');
 
   const rowBg = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
@@ -236,7 +238,7 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
       }}
     >
       {/* Header */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody }}>
+      <div style={{ padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
           <div style={{ width: 48, height: 48, borderRadius: '50%', background: T.grad.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20, fontWeight: 700, flexShrink: 0 }}>
             {customer.name.charAt(0).toUpperCase()}
@@ -309,7 +311,9 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
               {orders.map((o) => {
                 const sc = statusColor(o.status);
                 return (
-                  <div key={o.id} style={{ background: rowBg, borderRadius: T.r.md, border: `1px solid ${T.border}`, padding: '12px 14px' }}>
+                  <div key={o.id}
+                    onClick={() => { onClose(); navigate('/dashboard', { state: { openOrderId: o.id } }); }}
+                    style={{ background: rowBg, borderRadius: T.r.md, border: `1px solid ${T.border}`, padding: '12px 14px', cursor: 'pointer' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
                       <div>
                         <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, fontFamily: 'monospace', background: T.bg, padding: '2px 6px', borderRadius: T.r.sm, border: `1px solid ${T.border}` }}>#{o.orderNumber}</span>
@@ -341,7 +345,9 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {measurements.map((m) => (
-                <div key={m.id} style={{ background: rowBg, borderRadius: T.r.md, border: `1px solid ${T.border}`, padding: '12px 14px' }}>
+                <div key={m.id}
+                  onClick={() => { onClose(); navigate(`/measurements/view/${m.id}`, { state: { measurement: m } }); }}
+                  style={{ background: rowBg, borderRadius: T.r.md, border: `1px solid ${T.border}`, padding: '12px 14px', cursor: 'pointer' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                     <span style={{ fontSize: 14, fontWeight: 700, color: T.text }}>
                       {m.memberName || m.customerName}

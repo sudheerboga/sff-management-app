@@ -1,14 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { inputBase } from '@/theme/appTheme';
-import { Customer, CustomerPickResult, CustomerMember, MemberRelation } from '@/types';
-
-const RELATIONS: { v: MemberRelation; label: string }[] = [
-  { v: 'self',   label: 'Self'    },
-  { v: 'child',  label: 'Child'   },
-  { v: 'spouse', label: 'Spouse'  },
-  { v: 'other',  label: 'Other'   },
-];
+import { Customer, CustomerPickResult, CustomerMember } from '@/types';
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10);
@@ -30,7 +23,6 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
   const [phoneFocused, setPhoneFocused] = useState(false);
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
-  const [newMemberRelation, setNewMemberRelation] = useState<MemberRelation>('child');
   const [newMemberNameFocused, setNewMemberNameFocused] = useState(false);
   const didAutoSelect = useRef(false);
 
@@ -87,12 +79,16 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
     setShowAddMember(false);
   }
 
+  const isDuplicateMember = !!matchedCustomer && matchedCustomer.members.some(
+    (m) => m.name.toLowerCase() === newMemberName.trim().toLowerCase(),
+  );
+
   function handleAddMember() {
-    if (!newMemberName.trim() || !matchedCustomer) return;
+    if (!newMemberName.trim() || !matchedCustomer || isDuplicateMember) return;
     const member: CustomerMember = {
       id: generateId(),
       name: newMemberName.trim(),
-      relation: newMemberRelation,
+      relation: 'other',
     };
     // Optimistically update the picker value; caller should persist via addMemberMutation
     onChange({
@@ -246,30 +242,21 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
                 type="text"
                 value={newMemberName}
                 onChange={(e) => setNewMemberName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleAddMember(); if (e.key === 'Escape') { setShowAddMember(false); setNewMemberName(''); } }}
                 onFocus={() => setNewMemberNameFocused(true)}
                 onBlur={() => setNewMemberNameFocused(false)}
-                placeholder="Member name"
-                style={inputBase(newMemberNameFocused, T)}
+                placeholder="Member name (Relation is optional)"
+                style={{
+                  ...inputBase(newMemberNameFocused, T),
+                  borderColor: isDuplicateMember ? T.danger.border : newMemberNameFocused ? accentColor : T.border,
+                }}
               />
-              <div style={{ display: 'flex', gap: 6, marginTop: 8, marginBottom: 10 }}>
-                {RELATIONS.map(({ v, label }) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setNewMemberRelation(v)}
-                    style={{
-                      flex: 1, padding: '6px 4px', borderRadius: T.r.sm,
-                      border: `1.5px solid ${newMemberRelation === v ? accentColor : T.border}`,
-                      background: newMemberRelation === v ? (isDark ? 'rgba(123,94,167,0.2)' : T.violet.pale) : 'transparent',
-                      color: newMemberRelation === v ? accentColor : T.muted,
-                      fontSize: 11, fontWeight: 600, fontFamily: T.fontBody, cursor: 'pointer',
-                    }}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              {isDuplicateMember && (
+                <span style={{ fontSize: 12, color: T.danger.text, marginTop: 4, display: 'block' }}>
+                  A member with this name already exists
+                </span>
+              )}
+              <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                 <button
                   type="button"
                   onClick={() => { setShowAddMember(false); setNewMemberName(''); }}
@@ -280,8 +267,8 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
                 <button
                   type="button"
                   onClick={handleAddMember}
-                  disabled={!newMemberName.trim()}
-                  style={{ flex: 2, padding: '9px', borderRadius: T.r.sm, border: 'none', background: newMemberName.trim() ? T.grad.brand : T.bg2, color: newMemberName.trim() ? '#fff' : T.muted, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: newMemberName.trim() ? 'pointer' : 'default' }}
+                  disabled={!newMemberName.trim() || isDuplicateMember}
+                  style={{ flex: 2, padding: '9px', borderRadius: T.r.sm, border: 'none', background: newMemberName.trim() && !isDuplicateMember ? T.grad.brand : T.bg2, color: newMemberName.trim() && !isDuplicateMember ? '#fff' : T.muted, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: newMemberName.trim() && !isDuplicateMember ? 'pointer' : 'default' }}
                 >
                   Add {newMemberName.trim() || 'Member'}
                 </button>

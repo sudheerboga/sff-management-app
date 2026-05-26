@@ -50,10 +50,25 @@ export default function MeasurementViewPage() {
   function handleCopy() {
     if (!measurement) return;
     const text = buildMeasurementMessage(measurement);
-    navigator.clipboard?.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+
+    const confirm = () => { setCopied(true); setTimeout(() => setCopied(false), 2000); };
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(confirm).catch(() => fallback(text, confirm));
+    } else {
+      fallback(text, confirm);
+    }
+  }
+
+  function fallback(text: string, onSuccess: () => void) {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+    document.body.appendChild(el);
+    el.focus();
+    el.select();
+    try { if (document.execCommand('copy')) onSuccess(); } catch (_) { /* silent */ }
+    document.body.removeChild(el);
   }
 
   return (
@@ -75,10 +90,19 @@ export default function MeasurementViewPage() {
             {forSelf ? 'Measurements' : `Measurements · ${measurement.customerName}`}
           </div>
         </div>
+        <button
+          onClick={handleCopy}
+          style={{ padding: '8px 12px', borderRadius: T.r.md, border: `1.5px solid ${T.border}`, background: copied ? T.success.bg : 'transparent', color: copied ? T.success.text : T.text2, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, transition: 'all .2s', flexShrink: 0 }}
+        >
+          {copied
+            ? <><svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Copied</>
+            : <><svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy</>
+          }
+        </button>
         {!isStaff && (
           <button
             onClick={() => navigate(`/measurements/edit/${measurement.id}`, { state: { measurement } })}
-            style={{ padding: '8px 16px', borderRadius: T.r.md, border: `1.5px solid ${T.violet.d}`, background: 'transparent', color: T.violet.d, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '8px 16px', borderRadius: T.r.md, border: `1.5px solid ${T.violet.d}`, background: 'transparent', color: T.violet.d, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
           >
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
             Edit
@@ -153,7 +177,7 @@ export default function MeasurementViewPage() {
       </div>
 
       {/* ── Action bar ── */}
-      <div style={{
+      {/* <div style={{
         position: 'fixed', left: 0, right: 0, bottom: 64,
         padding: '12px 16px',
         background: isDark ? 'rgba(13,10,24,0.96)' : 'rgba(253,250,247,0.96)',
@@ -163,7 +187,7 @@ export default function MeasurementViewPage() {
         paddingBottom: '2rem',
       }}>
         <div style={{ display: 'flex', gap: 8, maxWidth: 600, margin: '0 auto' }}>
-          {/* Copy */}
+          
           <button
             onClick={handleCopy}
             style={{ flex: 1, padding: '11px 0', borderRadius: T.r.md, border: `1.5px solid ${T.border}`, background: copied ? T.success.bg : 'transparent', color: copied ? T.success.text : T.text2, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, transition: 'all .2s' }}
@@ -174,7 +198,7 @@ export default function MeasurementViewPage() {
             }
           </button>
 
-          {/* WhatsApp */}
+          
           <button
             onClick={() => measurement && shareMeasurementWhatsApp(measurement)}
             style={{ flex: 1, padding: '11px 0', borderRadius: T.r.md, border: 'none', background: '#25D366', color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 4px 14px rgba(37,211,102,.25)' }}
@@ -183,8 +207,8 @@ export default function MeasurementViewPage() {
             WhatsApp
           </button>
 
-          {/* Edit */}
-          {/* {!isStaff && (
+          
+          {!isStaff && (
             <button
               onClick={() => navigate(`/measurements/edit/${measurement.id}`, { state: { measurement } })}
               style={{ flex: 1, padding: '11px 0', borderRadius: T.r.md, border: 'none', background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: T.sh.brand }}
@@ -192,9 +216,9 @@ export default function MeasurementViewPage() {
               <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Edit
             </button>
-          )} */}
+          )}
 
-          {/* Delete */}
+          
           {!isStaff && (
             <button
               onClick={() => setDeleteOpen(true)}
@@ -204,7 +228,7 @@ export default function MeasurementViewPage() {
             </button>
           )}
         </div>
-      </div>
+      </div> */}
 
       {/* ── Delete confirm ── */}
       <ConfirmDialog

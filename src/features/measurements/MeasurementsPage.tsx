@@ -123,10 +123,12 @@ export default function MeasurementsPage() {
                 {/* Name + actions */}
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8 }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>{m.customerName}</div>
-                    {m.customerPhone && (
-                      <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{m.customerPhone}</div>
-                    )}
+                    <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>
+                      {m.memberName && m.memberName !== m.customerName ? m.memberName : m.customerName}
+                    </div>
+                    <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                      {m.memberName && m.memberName !== m.customerName ? m.customerName : m.customerPhone || ''}
+                    </div>
                   </div>
                   {!isStaff && !isReadOnly && (
                     <div style={{ display: 'flex', gap: 4, flexShrink: 0, marginLeft: 8 }}>

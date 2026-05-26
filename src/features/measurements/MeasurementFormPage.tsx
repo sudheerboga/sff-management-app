@@ -175,42 +175,49 @@ export default function MeasurementFormPage() {
   }
 
   const loading = createMutation.isPending || updateMutation.isPending;
+  const submittingRef = useRef(false);
 
   async function handleSave() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const errors: { phone?: string; name?: string } = {};
     if (!customerPick.customerName.trim()) errors.name = 'Customer name is required';
     setPickErrors(errors);
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length) { submittingRef.current = false; return; }
 
-    let resolvedCustomerId = customerPick.customerId;
-    const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
+    try {
+      let resolvedCustomerId = customerPick.customerId;
+      const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
 
-    if (!resolvedCustomerId && customerPick.customerPhone) {
-      resolvedCustomerId = await createCustomer.mutateAsync({
-        name: customerPick.customerName,
-        phone: customerPick.customerPhone,
-        members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
-      });
-    } else if (resolvedCustomerId && pick._newMember) {
-      await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+      if (!resolvedCustomerId && customerPick.customerPhone) {
+        resolvedCustomerId = await createCustomer.mutateAsync({
+          name: customerPick.customerName,
+          phone: customerPick.customerPhone,
+          members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
+        });
+      } else if (resolvedCustomerId && pick._newMember) {
+        await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+      }
+
+      const data = {
+        customerId:    resolvedCustomerId,
+        memberName:    customerPick.memberName || customerPick.customerName,
+        memberId:      customerPick.memberId,
+        customerName:  customerPick.customerName,
+        customerPhone: customerPick.customerPhone,
+        garments:      measurements,
+        notes,
+      };
+      if (isEdit && measurementId) {
+        await updateMutation.mutateAsync({ id: measurementId, data });
+      } else {
+        await createMutation.mutateAsync(data);
+      }
+      savedRef.current = true;
+      navigate(-1);
+    } finally {
+      submittingRef.current = false;
     }
-
-    const data = {
-      customerId:    resolvedCustomerId,
-      memberName:    customerPick.memberName || customerPick.customerName,
-      memberId:      customerPick.memberId,
-      customerName:  customerPick.customerName,
-      customerPhone: customerPick.customerPhone,
-      garments:      measurements,
-      notes,
-    };
-    if (isEdit && measurementId) {
-      await updateMutation.mutateAsync({ id: measurementId, data });
-    } else {
-      await createMutation.mutateAsync(data);
-    }
-    savedRef.current = true;
-    navigate(-1);
   }
 
   const fields      = customFields[activeGarment] || DEFAULT_FIELDS[activeGarment] || [];
@@ -320,7 +327,7 @@ export default function MeasurementFormPage() {
       ) : (
         <button onClick={() => setAddingField(true)}
           style={{ width: '100%', padding: 13, background: isDark ? 'linear-gradient(135deg,rgba(155,127,212,0.08),rgba(201,107,154,0.06))' : 'linear-gradient(135deg,#f3eff9,#fdf0f6)', border: `1.5px dashed ${isDark ? 'rgba(155,127,212,0.3)' : T.violet.d + '55'}`, borderRadius: T.r.lg, color: T.violet.d, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 14, fontFamily: T.fontBody, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, boxSizing: 'border-box' }}>
-          <span style={{ fontSize: 18 }}>+</span> Add Custom Measurement
+          <span style={{ fontSize: 18 }}>+</span> Add More Items
         </button>
       )}
 

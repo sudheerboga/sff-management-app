@@ -46,7 +46,7 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
     : 'U';
 
   return (
-    <AppBar position="sticky" elevation={0} sx={{ zIndex: 1100 }}>
+    <AppBar position="sticky" elevation={0} sx={{ zIndex: 1100, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <Toolbar sx={{ gap: 1 }}>
         {showMenu && (
           <IconButton edge="start" onClick={onMenuClick} size="small">

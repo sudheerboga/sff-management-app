@@ -10,11 +10,8 @@ import { useOrders } from '@/features/orders/hooks/useOrders';
 import { useNavigate } from 'react-router-dom';
 
 const STATUSES: { v: Order['status']; label: string }[] = [
-  { v: 'pending',     label: 'Pending'     },
-  { v: 'in-progress', label: 'In Progress' },
-  { v: 'ready',       label: 'Ready'       },
-  { v: 'delivered',   label: 'Delivered'   },
-  { v: 'cancelled',   label: 'Cancelled'   },
+  { v: 'pending',   label: 'Pending'   },
+  { v: 'delivered', label: 'Delivered' },
 ];
 
 interface Props {
@@ -98,7 +95,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       }}
     >
       {/* ── Header ── */}
-      <div style={{ padding: '20px 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody, background: '#aea9a31f' }}>
+      <div style={{ padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody, background: '#aea9a31f' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.2 }}>
@@ -505,7 +502,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       {lightboxIdx !== null && allImages[lightboxIdx] && (
         <div
           onClick={() => setLightboxIdx(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', paddingTop: 'max(20px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: 'max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
         >
           {/* Prev / Next */}
           {allImages.length > 1 && (
@@ -539,7 +536,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{lightboxIdx + 1} / {allImages.length}</div>
           <button
             onClick={() => setLightboxIdx(null)}
-            style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{ position: 'absolute', top: 'max(16px, calc(env(safe-area-inset-top, 0px) + 8px))', right: 16, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>

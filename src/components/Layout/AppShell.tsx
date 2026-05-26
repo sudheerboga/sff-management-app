@@ -70,7 +70,7 @@ export default function AppShell() {
           flexDirection: 'column',
           ml: isDesktop ? `${SIDEBAR_WIDTH}px` : 0,
           minHeight: '100vh',
-          pb: isDesktop ? 0 : '72px',
+          pb: isDesktop ? 0 : 'calc(72px + env(safe-area-inset-bottom, 0px))',
         }}
       >
         <TopBar onMenuClick={() => setSidebarOpen(true)} showMenu={!isDesktop} />

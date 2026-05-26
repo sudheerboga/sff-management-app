@@ -75,8 +75,10 @@ export default function Sidebar({ open, variant, width, onClose }: Props) {
     <Box sx={{ width, display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box
         sx={{
-          p: 2.5,
+          pl: 2.5,
+          pr: 2.5,
           pb: 2,
+          pt: 'max(20px, calc(env(safe-area-inset-top, 0px) + 8px))',
           background: (t) => t.palette.brand.gradient,
           color: '#fff',
           minHeight: 80,

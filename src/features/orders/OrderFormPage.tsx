@@ -208,64 +208,68 @@ export default function OrderFormPage() {
   }
 
   const loading = createMutation.isPending || updateMutation.isPending;
+  const submittingRef = useRef(false);
 
   async function handleSave() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     const errors: { phone?: string; name?: string } = {};
     if (!customerPick.customerName.trim()) errors.name = 'Customer name is required';
     if (setPickErrors) setPickErrors(errors);
-    if (Object.keys(errors).length) return;
+    if (Object.keys(errors).length) { submittingRef.current = false; return; }
 
-    const items: OrderItem[] = lines
-      .filter((l) => l.name.trim() && parseFloat(l.amount) > 0)
-      .map((l) => ({
-        garment: l.name.trim(),
-        description: '',
-        qty: 1,
-        rate: parseFloat(l.amount),
-        amount: parseFloat(l.amount),
-        profit: 0,
-        images: l.images
-          .filter((img) => img.url && !img.error)
-          .map((img) => ({ url: img.url!, publicId: img.publicId || '', note: img.note })),
-      }));
-    if (!items.length) return;
+    try {
+      const items: OrderItem[] = lines
+        .filter((l) => l.name.trim() && parseFloat(l.amount) > 0)
+        .map((l) => ({
+          garment: l.name.trim(),
+          description: '',
+          qty: 1,
+          rate: parseFloat(l.amount),
+          amount: parseFloat(l.amount),
+          profit: 0,
+          images: l.images
+            .filter((img) => img.url && !img.error)
+            .map((img) => ({ url: img.url!, publicId: img.publicId || '', note: img.note })),
+        }));
+      if (!items.length) { submittingRef.current = false; return; }
 
-    // Resolve customerId — create new customer if needed
-    let resolvedCustomerId = customerPick.customerId;
-    const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
+      let resolvedCustomerId = customerPick.customerId;
+      const pick = customerPick as CustomerPickResult & { _newMember?: CustomerMember };
 
-    if (!resolvedCustomerId && customerPick.customerPhone) {
-      // New customer
-      resolvedCustomerId = await createCustomer.mutateAsync({
-        name: customerPick.customerName,
-        phone: customerPick.customerPhone,
-        members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
-      });
-    } else if (resolvedCustomerId && pick._newMember) {
-      // Existing customer with a brand-new family member
-      await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+      if (!resolvedCustomerId && customerPick.customerPhone) {
+        resolvedCustomerId = await createCustomer.mutateAsync({
+          name: customerPick.customerName,
+          phone: customerPick.customerPhone,
+          members: [{ id: Math.random().toString(36).slice(2), name: customerPick.customerName, relation: 'self' }],
+        });
+      } else if (resolvedCustomerId && pick._newMember) {
+        await addMemberMutation.mutateAsync({ customerId: resolvedCustomerId, member: pick._newMember });
+      }
+
+      const data = {
+        customerId:    resolvedCustomerId,
+        memberName:    customerPick.memberName || customerPick.customerName,
+        memberId:      customerPick.memberId,
+        customerName:  customerPick.customerName,
+        customerPhone: customerPick.customerPhone,
+        items,
+        paidAmount:   parseFloat(paid)     || 0,
+        materialCost: parseFloat(material) || 0,
+        deliveryDate: delivDt ? new Date(delivDt) : null,
+        orderDate:    new Date(orderDt || today()),
+        notes,
+      };
+      if (isEdit && orderId) {
+        await updateMutation.mutateAsync({ orderId, data });
+      } else {
+        await createMutation.mutateAsync({ ...data, createdBy: user!.uid, createdByName: user!.name });
+      }
+      savedRef.current = true;
+      navigate(-1);
+    } finally {
+      submittingRef.current = false;
     }
-
-    const data = {
-      customerId:    resolvedCustomerId,
-      memberName:    customerPick.memberName || customerPick.customerName,
-      memberId:      customerPick.memberId,
-      customerName:  customerPick.customerName,
-      customerPhone: customerPick.customerPhone,
-      items,
-      paidAmount:   parseFloat(paid)     || 0,
-      materialCost: parseFloat(material) || 0,
-      deliveryDate: delivDt ? new Date(delivDt) : null,
-      orderDate:    new Date(orderDt || today()),
-      notes,
-    };
-    if (isEdit && orderId) {
-      await updateMutation.mutateAsync({ orderId, data });
-    } else {
-      await createMutation.mutateAsync({ ...data, createdBy: user!.uid, createdByName: user!.name });
-    }
-    savedRef.current = true;
-    navigate(-1);
   }
 
   const sectionBg  = isDark ? 'rgba(26,21,48,0.6)' : T.bg;
@@ -279,7 +283,7 @@ export default function OrderFormPage() {
   const saveBarBottom = isDesktop ? 0 : 64;
 
   return (
-    <div style={{ fontFamily: T.fontBody, paddingBottom: isDesktop ? 90 : 160 }}>
+    <div style={{ fontFamily: T.fontBody, paddingBottom: isDesktop ? 90 : 160, overflowX: 'hidden' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
@@ -315,11 +319,11 @@ export default function OrderFormPage() {
           </div>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginTop: 14, marginBottom: 14 }}>
-          <div style={{ width: '80%' }}>
+          <div>
             <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Order Date</label>
-            <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%'}} />
+            <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }} />
           </div>
-          <div style={{ width: '80%' }}>
+          <div>
             <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Delivery Date</label>
             <input type="date" value={delivDt} onChange={(e) => setDelivDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }} />
           </div>
