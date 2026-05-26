@@ -4,24 +4,12 @@ import { useTheme, useMediaQuery } from '@mui/material';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { inputBase, AppTheme } from '@/theme/appTheme';
 import { useMeasurements } from './hooks/useMeasurements';
+import { useMeasurementTemplates } from './hooks/useMeasurementTemplates';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import CustomerMemberPicker from '@/components/common/CustomerMemberPicker';
 import { useCustomers } from '@/features/customers/hooks/useCustomers';
 import { Measurement, CustomerMeasurements, CustomerPickResult, CustomerMember } from '@/types';
 
-const GARMENT_TYPES = ['Blouse', 'Lehenga', 'Saree', 'Churidar', 'Frock', 'Gown', 'Pavadai', 'Kurti', 'Custom'];
-
-const DEFAULT_FIELDS: Record<string, string[]> = {
-  Blouse:   ['Chest', 'Waist', 'Hip', 'Shoulder', 'Sleeve Length', 'Sleeve Width', 'Length', 'Back Length', 'Neck Front', 'Neck Back'],
-  Lehenga:  ['Waist', 'Hip', 'Length', 'Blouse Chest', 'Blouse Waist', 'Blouse Length'],
-  Churidar: ['Chest', 'Waist', 'Hip', 'Shoulder', 'Sleeve Length', 'Churidar Length', 'Bottom'],
-  Frock:    ['Chest', 'Waist', 'Hip', 'Length', 'Shoulder', 'Sleeve Length'],
-  Gown:     ['Chest', 'Waist', 'Hip', 'Shoulder', 'Sleeve Length', 'Length'],
-  Saree:    ['Waist', 'Hip', 'Fall Length'],
-  Pavadai:  ['Waist', 'Hip', 'Length'],
-  Kurti:    ['Chest', 'Waist', 'Hip', 'Length', 'Shoulder', 'Sleeve Length'],
-  Custom:   [],
-};
 
 
 interface MeasureFieldProps {
@@ -81,6 +69,14 @@ export default function MeasurementFormPage() {
   const isEdit = !!measurementId;
   const { query, createMutation, updateMutation } = useMeasurements();
   const { query: customersQuery, createMutation: createCustomer, addMemberMutation } = useCustomers();
+  const { query: templatesQuery } = useMeasurementTemplates();
+  const templates = templatesQuery.data || [];
+  const garmentTypes = templates.map((t) => t.name);
+  const defaultFieldsMap = useMemo(
+    () => Object.fromEntries(templates.map((t) => [t.name, t.fields])),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [templates.map((t) => t.id + t.name).join(',')],
+  );
 
   const defaultValues: Measurement | undefined =
     (location.state as { measurement?: Measurement })?.measurement ??
@@ -103,7 +99,7 @@ export default function MeasurementFormPage() {
   const [customFields,     setCustomFields]     = useState<Record<string, string[]>>(
     defaultValues
       ? Object.fromEntries(Object.entries(defaultValues.garments).map(([g, vals]) => [g, Object.keys(vals)]))
-      : { Blouse: [...DEFAULT_FIELDS.Blouse] },
+      : {},
   );
   const [newFieldName, setNewFieldName] = useState('');
   const [addingField,  setAddingField]  = useState(false);
@@ -153,7 +149,7 @@ export default function MeasurementFormPage() {
     } else {
       setSelectedGarments((g) => [...g, garment]);
       setMeasurements((m) => ({ ...m, [garment]: {} }));
-      setCustomFields((f) => ({ ...f, [garment]: [...(DEFAULT_FIELDS[garment] || [])] }));
+      setCustomFields((f) => ({ ...f, [garment]: [...(defaultFieldsMap[garment] || [])] }));
       setActiveGarment(garment);
     }
   }
@@ -220,7 +216,7 @@ export default function MeasurementFormPage() {
     }
   }
 
-  const fields      = customFields[activeGarment] || DEFAULT_FIELDS[activeGarment] || [];
+  const fields      = customFields[activeGarment] || [];
   const filledCount = fields.filter((f) => measurements[activeGarment]?.[f]).length;
   const hasData     = (g: string) => Object.values(measurements[g] || {}).some((v) => v !== '' && v != null);
 
@@ -265,7 +261,7 @@ export default function MeasurementFormPage() {
       {/* ── Garment tabs — horizontally scrollable ── */}
       <div style={{ overflowX: 'auto', marginBottom: 14, paddingBottom: 4 }}>
         <div style={{ display: 'flex', gap: 8, width: 'max-content' }}>
-          {GARMENT_TYPES.map((g) => {
+          {garmentTypes.map((g) => {
             const selected = selectedGarments.includes(g);
             const isActive = activeGarment === g;
             return (

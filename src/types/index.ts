@@ -176,35 +176,14 @@ export interface Measurement {
   isDeleted: boolean;
 }
 
-export interface BillItem {
-  description: string;
-  qty: number;
-  rate: number;
-  amount: number;
-}
-
-export type PaymentStatus = 'paid' | 'partial' | 'pending';
-
-export interface Bill {
+export interface MeasurementTemplate {
   id: string;
   boutiqueId: string;
-  orderId?: string;
-  invoiceNumber: string;
-  customerName: string;
-  customerPhone: string;
-  items: BillItem[];
-  subtotal: number;
-  gstPercent: number;
-  gstAmount: number;
-  totalAmount: number;
-  paidAmount: number;
-  balanceAmount: number;
-  paymentStatus: PaymentStatus;
-  notes: string;
-  createdBy: string;
-  createdByName: string;
+  name: string;
+  fields: string[];
+  order: number;
   createdAt: Date;
-  isDeleted: boolean;
+  updatedAt: Date;
 }
 
 export interface StaffMember {
@@ -220,7 +199,7 @@ export interface StaffMember {
 export interface DeletedRecord {
   id: string;
   boutiqueId: string;
-  collection: 'orders' | 'measurements' | 'billing';
+  collection: 'orders' | 'measurements';
   recordId: string;
   data: Record<string, unknown>;
   deletedBy: string;

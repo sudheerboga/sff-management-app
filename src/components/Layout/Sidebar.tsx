@@ -11,7 +11,6 @@ import {
 } from '@mui/material';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import StraightenIcon from '@mui/icons-material/Straighten';
-import ReceiptIcon from '@mui/icons-material/Receipt';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import PeopleIcon from '@mui/icons-material/People';
 import CardMembershipIcon from '@mui/icons-material/CardMembership';
@@ -33,7 +32,6 @@ const BOUTIQUE_NAV: NavItem[] = [
   { label: 'Orders',       icon: <AssignmentIcon />,    path: '/dashboard',    featureKey: 'orders'       },
   { label: 'Customers',    icon: <PeopleIcon />,         path: '/customers'                               },
   { label: 'Measurements', icon: <StraightenIcon />,    path: '/measurements', featureKey: 'measurements' },
-  { label: 'Billing',      icon: <ReceiptIcon />,        path: '/billing',      featureKey: 'billing'      },
   { label: 'Reports',      icon: <BarChartIcon />,       path: '/reports',      featureKey: 'reports'      },
   { label: 'Staff',        icon: <PeopleIcon />,         path: '/staff',        adminOnly: true, featureKey: 'staff' },
   { label: 'Subscription', icon: <CardMembershipIcon />, path: '/subscription'                            },

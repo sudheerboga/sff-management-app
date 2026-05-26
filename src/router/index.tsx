@@ -1,8 +1,6 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, Outlet } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/stores/authStore';
-import { getBoutique } from '@/services/boutiques';
 import LoadingScreen from '@/components/common/LoadingScreen';
 import AppShell from '@/components/layout/AppShell';
 import AdminLayout from '@/features/admin/AdminLayout';
@@ -14,7 +12,7 @@ const OrderFormPage    = lazy(() => import('@/features/orders/OrderFormPage'));
 const MeasurementsPage = lazy(() => import('@/features/measurements/MeasurementsPage'));
 const MeasurementFormPage = lazy(() => import('@/features/measurements/MeasurementFormPage'));
 const MeasurementViewPage = lazy(() => import('@/features/measurements/MeasurementViewPage'));
-const BillingPage = lazy(() => import('@/features/billing/BillingPage'));
+const MeasurementItemsPage = lazy(() => import('@/features/measurements/MeasurementItemsPage'));
 const ReportsPage = lazy(() => import('@/features/reports/ReportsPage'));
 const CustomersPage = lazy(() => import('@/features/customers/CustomersPage'));
 const StaffPage = lazy(() => import('@/features/staff/StaffPage'));
@@ -42,19 +40,6 @@ function AdminGuard() {
 function AdminOnlyGuard() {
   const user = useAuthStore((s) => s.user);
   if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
-  return <Outlet />;
-}
-
-function BillingFeatureGuard() {
-  const user = useAuthStore((s) => s.user);
-  const { data: boutique, isLoading } = useQuery({
-    queryKey: ['boutique', user?.boutiqueId],
-    queryFn: () => getBoutique(user!.boutiqueId!),
-    enabled: !!user?.boutiqueId,
-    staleTime: 5 * 60 * 1000,
-  });
-  if (isLoading) return <LoadingScreen />;
-  if (boutique && !boutique.subscription.features.includes('billing')) return <Navigate to="/dashboard" replace />;
   return <Outlet />;
 }
 
@@ -88,11 +73,8 @@ export const router = createBrowserRouter([
           { path: '/measurements/new', element: wrap(<MeasurementFormPage />) },
           { path: '/measurements/view/:measurementId', element: wrap(<MeasurementViewPage />) },
           { path: '/measurements/edit/:measurementId', element: wrap(<MeasurementFormPage />) },
+          { path: '/measurements/items', element: wrap(<MeasurementItemsPage />) },
           { path: '/customers', element: wrap(<CustomersPage />) },
-          {
-            element: <BillingFeatureGuard />,
-            children: [{ path: '/billing', element: wrap(<BillingPage />) }],
-          },
           { path: '/reports', element: wrap(<ReportsPage />) },
           { path: '/subscription', element: wrap(<SubscriptionPage />) },
           {

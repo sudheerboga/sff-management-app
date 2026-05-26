@@ -75,7 +75,7 @@ export async function createBoutique(
       plan: 'free',
       planName: 'Free Plan',
       expiresAt: null,
-      features: ['orders', 'measurements', 'billing'],
+      features: ['orders', 'measurements'],
       isActive: true,
       maxOrders: 100,
       maxStaff: 2,

@@ -1,5 +1,5 @@
 import { Chip } from '@mui/material';
-import { OrderStatus, PaymentStatus } from '@/types';
+import { OrderStatus } from '@/types';
 
 const ORDER_STATUS: Record<OrderStatus, { label: string; color: string; bg: string }> = {
   pending:     { label: 'Pending',     color: '#7a4f00', bg: '#fff3dc' },
@@ -9,25 +9,8 @@ const ORDER_STATUS: Record<OrderStatus, { label: string; color: string; bg: stri
   cancelled:   { label: 'Cancelled',   color: '#8b2020', bg: '#fdeaea' },
 };
 
-const PAYMENT_STATUS: Record<PaymentStatus, { label: string; color: string; bg: string }> = {
-  paid:    { label: 'Paid',    color: '#1e6b3e', bg: '#e8f5ee' },
-  partial: { label: 'Partial', color: '#7a4f00', bg: '#fff3dc' },
-  pending: { label: 'Pending', color: '#8b2020', bg: '#fdeaea' },
-};
-
 export function OrderStatusChip({ status }: { status: OrderStatus }) {
   const s = ORDER_STATUS[status] || ORDER_STATUS.pending;
-  return (
-    <Chip
-      label={s.label}
-      size="small"
-      sx={{ color: s.color, backgroundColor: s.bg, fontWeight: 600, fontSize: 11, height: 22, borderRadius: 1.5 }}
-    />
-  );
-}
-
-export function PaymentStatusChip({ status }: { status: PaymentStatus }) {
-  const s = PAYMENT_STATUS[status] || PAYMENT_STATUS.pending;
   return (
     <Chip
       label={s.label}

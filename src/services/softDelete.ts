@@ -9,7 +9,7 @@ function deletedCol(boutiqueId: string) {
 
 export async function softDelete(
   boutiqueId: string,
-  collectionName: 'orders' | 'measurements' | 'billing',
+  collectionName: 'orders' | 'measurements',
   recordId: string,
   data: Record<string, unknown>,
   deletedBy: string,
@@ -49,7 +49,7 @@ export async function getDeletedRecords(boutiqueId: string): Promise<DeletedReco
 export async function restoreRecord(
   boutiqueId: string,
   deletedRecordId: string,
-  collectionName: 'orders' | 'measurements' | 'billing',
+  collectionName: 'orders' | 'measurements',
   recordId: string,
 ): Promise<void> {
   await updateDoc(

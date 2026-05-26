@@ -68,6 +68,13 @@ service cloud.firestore {
         allow delete: if isSuperAdmin() || isAdminOf(boutiqueId);
       }
 
+      match /measurementTemplates/{templateId} {
+        allow read:   if isSuperAdmin() || isMemberOf(boutiqueId);
+        allow create: if isSuperAdmin() || isAdminOf(boutiqueId);
+        allow update: if isSuperAdmin() || isAdminOf(boutiqueId);
+        allow delete: if isSuperAdmin() || isAdminOf(boutiqueId);
+      }
+
       match /deletedRecords/{recordId} {
         allow read:  if isSuperAdmin() || isAdminOf(boutiqueId);
         allow write: if isSuperAdmin() || isMemberOf(boutiqueId);

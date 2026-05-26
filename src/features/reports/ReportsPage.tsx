@@ -6,7 +6,6 @@ import {
 } from 'recharts';
 import { format, startOfMonth, subMonths, isWithinInterval, endOfMonth, isSameMonth } from 'date-fns';
 import { useOrders } from '@/features/orders/hooks/useOrders';
-import { useBilling } from '@/features/billing/hooks/useBilling';
 import PageHeader from '@/components/common/PageHeader';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
@@ -18,53 +17,50 @@ const STATUS_LABELS: Record<string, string> = {
 export default function ReportsPage() {
   const { T, isDark } = useAppTheme();
   const { query: ordersQuery } = useOrders();
-  const { query: billingQuery } = useBilling();
   const orders = ordersQuery.data || [];
-  const bills  = billingQuery.data || [];
-  const loading = ordersQuery.isLoading || billingQuery.isLoading;
+  const loading = ordersQuery.isLoading;
   const now = new Date();
   const [tableEndOffset, setTableEndOffset] = useState(0);
+  const [chartEndOffset, setChartEndOffset] = useState(0);
 
+  // ── Per-month rows ────────────────────────────────────────────
   const tableData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d     = subMonths(now, tableEndOffset + 5 - i);
     const start = startOfMonth(d);
     const end   = endOfMonth(d);
     const mo    = orders.filter((o) => isWithinInterval(o.orderDate, { start, end }));
-    const mb    = bills.filter((b)  => isWithinInterval(b.createdAt, { start, end }));
     return {
       fullMonth: format(d, 'MMM yyyy'),
       isCurrent: isSameMonth(d, now),
       orders:    mo.length,
-      revenue:   mb.reduce((s, b) => s + b.totalAmount, 0),
-      paid:      mb.reduce((s, b) => s + b.paidAmount, 0),
-      balance:   mb.reduce((s, b) => s + b.balanceAmount, 0),
+      revenue:   mo.reduce((s, o) => s + (o.totalAmount   || 0), 0),
+      paid:      mo.reduce((s, o) => s + (o.paidAmount    || 0), 0),
+      balance:   mo.reduce((s, o) => s + (o.balanceAmount || 0), 0),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [tableEndOffset, orders, bills]);
+  }), [tableEndOffset, orders]);
 
   const tableTotal = useMemo(() => ({
-    orders:  tableData.reduce((s, r) => s + r.orders, 0),
+    orders:  tableData.reduce((s, r) => s + r.orders,  0),
     revenue: tableData.reduce((s, r) => s + r.revenue, 0),
-    paid:    tableData.reduce((s, r) => s + r.paid, 0),
+    paid:    tableData.reduce((s, r) => s + r.paid,    0),
     balance: tableData.reduce((s, r) => s + r.balance, 0),
   }), [tableData]);
 
-  const [chartEndOffset, setChartEndOffset] = useState(0);
-
+  // ── Chart data ────────────────────────────────────────────────
   const chartData = useMemo(() => Array.from({ length: 6 }, (_, i) => {
     const d     = subMonths(now, chartEndOffset + 5 - i);
     const start = startOfMonth(d);
     const end   = endOfMonth(d);
     const mo    = orders.filter((o) => isWithinInterval(o.orderDate, { start, end }));
-    const mb    = bills.filter((b)  => isWithinInterval(b.createdAt, { start, end }));
     return {
-      month:    format(d, 'MMM yy'),
-      orders:   mo.length,
+      month:     format(d, 'MMM yy'),
+      orders:    mo.length,
       delivered: mo.filter((o) => o.status === 'delivered').length,
-      revenue:  mb.reduce((s, b) => s + b.totalAmount, 0),
+      revenue:   mo.reduce((s, o) => s + (o.totalAmount || 0), 0),
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [chartEndOffset, orders, bills]);
+  }), [chartEndOffset, orders]);
 
   const chartPeriodOptions = useMemo(() => Array.from({ length: 7 }, (_, offset) => {
     const endDate   = subMonths(now, offset);
@@ -78,32 +74,37 @@ export default function ReportsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), []);
 
+  // ── Aggregate KPIs ────────────────────────────────────────────
+  const totalRevenue = orders.reduce((s, o) => s + (o.totalAmount   || 0), 0);
+  const totalPaid    = orders.reduce((s, o) => s + (o.paidAmount    || 0), 0);
+  const totalBalance = orders.reduce((s, o) => s + (o.balanceAmount || 0), 0);
+  const delivered    = orders.filter((o) => o.status === 'delivered').length;
+  const deliveryRate = orders.length > 0 ? Math.round((delivered / orders.length) * 100) : 0;
+
+  // ── Status donut ──────────────────────────────────────────────
   const statusData = useMemo(() => {
     const counts: Record<string, number> = {};
     orders.forEach((o) => { counts[o.status] = (counts[o.status] || 0) + 1; });
     return Object.entries(counts).map(([k, v]) => ({ name: STATUS_LABELS[k] || k, raw: k, value: v }));
   }, [orders]);
 
-  const totalRevenue = bills.reduce((s, b) => s + b.totalAmount, 0);
-  const totalPaid    = bills.reduce((s, b) => s + b.paidAmount, 0);
-  const totalBalance = bills.reduce((s, b) => s + b.balanceAmount, 0);
-  const delivered    = orders.filter((o) => o.status === 'delivered').length;
-  const deliveryRate = orders.length > 0 ? Math.round((delivered / orders.length) * 100) : 0;
-
+  // ── Top customers ─────────────────────────────────────────────
   const topCustomers = useMemo(() => {
-    const map: Record<string, { name: string; orders: number; revenue: number }> = {};
+    const map: Record<string, { name: string; orders: number; revenue: number; paid: number; balance: number }> = {};
     orders.forEach((o) => {
-      if (!map[o.customerName]) map[o.customerName] = { name: o.customerName, orders: 0, revenue: 0 };
+      if (!map[o.customerName]) map[o.customerName] = { name: o.customerName, orders: 0, revenue: 0, paid: 0, balance: 0 };
       map[o.customerName].orders++;
-      map[o.customerName].revenue += o.totalAmount;
+      map[o.customerName].revenue  += o.totalAmount   || 0;
+      map[o.customerName].paid     += o.paidAmount    || 0;
+      map[o.customerName].balance  += o.balanceAmount || 0;
     });
     return Object.values(map).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
   }, [orders]);
 
+  // ── Helpers ───────────────────────────────────────────────────
   const fmt  = (n: number) => `₹${n.toLocaleString('en-IN')}`;
   const fmtK = (v: number) => v >= 1000 ? `₹${(v / 1000).toFixed(1)}K` : `₹${v}`;
 
-  // Chart theming
   const axisStyle = { fill: T.muted, fontSize: 11, fontFamily: T.fontBody };
   const tooltipStyle = {
     contentStyle: {
@@ -112,7 +113,7 @@ export default function ReportsPage() {
       boxShadow: T.sh.md, color: T.text,
     },
     labelStyle: { color: T.text, fontWeight: 700 },
-    itemStyle: { color: T.text2 },
+    itemStyle:  { color: T.text2 },
     cursor: { fill: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' },
   };
 
@@ -135,8 +136,8 @@ export default function ReportsPage() {
       <Box>
         <PageHeader title="Reports" subtitle="Analytics & performance overview" />
         <Grid container spacing={1.5}>
-          {[1,2,3,4,5,6,7,8].map((i) => (
-            <Grid item xs={6} md={3} key={i}>
+          {[1,2,3,4,5,6].map((i) => (
+            <Grid item xs={6} md={4} key={i}>
               <Skeleton variant="rounded" height={90} sx={{ borderRadius: 2 }} />
             </Grid>
           ))}
@@ -152,10 +153,12 @@ export default function ReportsPage() {
       {/* ── KPI tiles ── */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
         {[
-          { label: 'Total Billed', value: fmt(totalRevenue), sub: `${orders.length} orders`, color: T.violet.d, bg: T.violet.pale },
-          { label: 'Collected',    value: fmt(totalPaid),    sub: 'payments received',       color: T.success.text, bg: T.success.bg },
-          { label: 'Balance Due',  value: fmt(totalBalance), sub: 'pending collection',      color: T.danger.text,  bg: T.danger.bg },
-          { label: 'Delivery Rate',value: `${deliveryRate}%`, sub: `${delivered} delivered`,  color: deliveryRate >= 80 ? T.success.text : T.warning.text, bg: deliveryRate >= 80 ? T.success.bg : T.warning.bg },
+          { label: 'Total Billed',  value: fmt(totalRevenue), sub: `${orders.length} orders`,      color: T.violet.d,     bg: T.violet.pale },
+          { label: 'Collected',     value: fmt(totalPaid),    sub: 'payments received',             color: T.success.text, bg: T.success.bg  },
+          { label: 'Balance Due',   value: fmt(totalBalance), sub: 'pending collection',            color: T.danger.text,  bg: T.danger.bg   },
+          { label: 'Delivery Rate', value: `${deliveryRate}%`, sub: `${delivered} of ${orders.length} delivered`,
+            color: deliveryRate >= 80 ? T.success.text : T.warning.text,
+            bg:    deliveryRate >= 80 ? T.success.bg   : T.warning.bg  },
         ].map((kpi) => (
           <div key={kpi.label} style={{ ...cardStyle, padding: '14px 16px', background: kpi.bg, border: `1px solid ${kpi.color}22` }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: kpi.color, textTransform: 'uppercase', letterSpacing: '.07em', marginBottom: 6 }}>{kpi.label}</div>
@@ -197,10 +200,7 @@ export default function ReportsPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
                 <XAxis dataKey="month" tick={axisStyle} axisLine={{ stroke: T.border }} tickLine={false} />
                 <YAxis tick={axisStyle} axisLine={false} tickLine={false} tickFormatter={fmtK} width={52} />
-                <Tooltip
-                  formatter={(v: number) => [fmt(v), 'Revenue']}
-                  {...tooltipStyle}
-                />
+                <Tooltip formatter={(v: number) => [fmt(v), 'Revenue']} {...tooltipStyle} />
                 <Bar dataKey="revenue" fill="url(#barGrad)" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -213,29 +213,17 @@ export default function ReportsPage() {
             {statusData.length > 0 ? (
               <ResponsiveContainer width="100%" height={200}>
                 <PieChart>
-                  <Pie
-                    data={statusData} cx="50%" cy="45%"
-                    innerRadius={52} outerRadius={76}
-                    paddingAngle={3} dataKey="value"
-                  >
+                  <Pie data={statusData} cx="50%" cy="45%" innerRadius={52} outerRadius={76} paddingAngle={3} dataKey="value">
                     {statusData.map((entry, i) => (
                       <Cell key={i} fill={STATUS_COLORS[entry.raw] || T.violet.d} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    formatter={(v: number, name: string) => [v, name]}
-                    {...tooltipStyle}
-                  />
-                  <Legend
-                    iconSize={8} iconType="circle"
-                    wrapperStyle={{ fontSize: 11, fontFamily: T.fontBody, color: T.text2, paddingTop: 8 }}
-                  />
+                  <Tooltip formatter={(v: number, name: string) => [v, name]} {...tooltipStyle} />
+                  <Legend iconSize={8} iconType="circle" wrapperStyle={{ fontSize: 11, fontFamily: T.fontBody, color: T.text2, paddingTop: 8 }} />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: T.muted, fontSize: 13 }}>
-                No data yet
-              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 160, color: T.muted, fontSize: 13 }}>No data yet</div>
             )}
           </div>
         </Grid>
@@ -250,8 +238,8 @@ export default function ReportsPage() {
                 <XAxis dataKey="month" tick={axisStyle} axisLine={{ stroke: T.border }} tickLine={false} />
                 <YAxis tick={axisStyle} axisLine={false} tickLine={false} allowDecimals={false} />
                 <Tooltip {...tooltipStyle} />
-                <Line type="monotone" dataKey="orders"    stroke={T.violet.d} strokeWidth={2.5} dot={{ r: 4, fill: T.violet.d, strokeWidth: 0 }}    name="Orders" />
-                <Line type="monotone" dataKey="delivered" stroke={T.success.text} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 3, fill: T.success.text, strokeWidth: 0 }} name="Delivered" />
+                <Line type="monotone" dataKey="orders"    stroke={T.violet.d}     strokeWidth={2.5} dot={{ r: 4, fill: T.violet.d,     strokeWidth: 0 }} name="Orders" />
+                <Line type="monotone" dataKey="delivered" stroke={T.success.text} strokeWidth={2}   strokeDasharray="5 4" dot={{ r: 3, fill: T.success.text, strokeWidth: 0 }} name="Delivered" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -259,9 +247,9 @@ export default function ReportsPage() {
       </Grid>
 
       {/* ── Monthly Revenue Table ── */}
-      <div style={{ ...cardStyle, marginBottom: 16, display: 'grid'}}>
+      <div style={{ ...cardStyle, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 10 }}>
-          <div style={{ ...sectionTitle, marginBottom: 0 }}>Monthly Revenue</div>
+          <div style={{ ...sectionTitle, marginBottom: 0 }}>Monthly Breakdown</div>
           <select
             value={tableEndOffset}
             onChange={(e) => setTableEndOffset(Number(e.target.value))}
@@ -281,7 +269,7 @@ export default function ReportsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.fontBody, fontSize: 13 }}>
             <thead>
               <tr>
-                {['Month', 'Orders', 'Total Billed', 'Collected', 'Balance'].map((h, i) => (
+                {['Month', 'Orders', 'Total Billed', 'Collected', 'Balance Due'].map((h, i) => (
                   <th key={h} style={{
                     padding: '8px 10px', textAlign: i === 0 ? 'left' : 'right',
                     fontSize: 10, fontWeight: 700, color: T.muted,
@@ -295,10 +283,7 @@ export default function ReportsPage() {
               {tableData.map((row) => (
                 <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
                   <td style={{ padding: '8px 10px', borderBottom: `1px solid ${T.border}` }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      {/* {row.isCurrent && <span style={{ fontSize: 9, fontWeight: 700, background: T.violet.d, color: '#fff', padding: '1px 5px', borderRadius: T.r.xs }}>NOW</span>} */}
-                      <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
-                    </div>
+                    <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
                   </td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
                     {row.orders > 0 ? row.orders : '—'}
@@ -334,7 +319,7 @@ export default function ReportsPage() {
           <div style={sectionTitle}>Top Customers by Revenue</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
             {topCustomers.map((c, i) => {
-              const pct = Math.round((c.revenue / totalRevenue) * 100) || 0;
+              const pct = totalRevenue > 0 ? Math.round((c.revenue / totalRevenue) * 100) : 0;
               const barColors = [T.violet.d, T.rose.d, T.blue.d, T.gold.d, T.success.text];
               return (
                 <div key={c.name} style={{ padding: '10px 0', borderBottom: i < topCustomers.length - 1 ? `1px solid ${T.border}` : 'none' }}>
@@ -345,7 +330,7 @@ export default function ReportsPage() {
                       </div>
                       <div style={{ minWidth: 0 }}>
                         <div style={{ fontWeight: 600, color: T.text, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.name}</div>
-                        <div style={{ fontSize: 11, color: T.muted }}>{c.orders} order{c.orders !== 1 ? 's' : ''}</div>
+                        <div style={{ fontSize: 11, color: T.muted }}>{c.orders} order{c.orders !== 1 ? 's' : ''} · due {fmt(c.balance)}</div>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0, marginLeft: 12 }}>
@@ -354,7 +339,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
                   <div style={{ height: 4, background: isDark ? 'rgba(255,255,255,0.06)' : T.border, borderRadius: 99 }}>
-                    <div style={{ height: '100%', width: `100%`, background: barColors[i], borderRadius: 99, transition: 'width .4s ease' }} />
+                    <div style={{ height: '100%', width: `${pct}%`, background: barColors[i], borderRadius: 99, transition: 'width .4s ease' }} />
                   </div>
                 </div>
               );

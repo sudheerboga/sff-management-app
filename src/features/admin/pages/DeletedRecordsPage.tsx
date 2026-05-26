@@ -69,7 +69,6 @@ export default function DeletedRecordsPage() {
   const collectionColors: Record<string, { color: string; bg: string }> = {
     orders: { color: '#4A6FD4', bg: '#eef2fc' },
     measurements: { color: '#7B5EA7', bg: '#f3eff9' },
-    billing: { color: '#C96B9A', bg: '#fdf0f6' },
   };
 
   return (

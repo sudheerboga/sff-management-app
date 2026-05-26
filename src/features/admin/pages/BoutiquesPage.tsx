@@ -99,7 +99,7 @@ export default function BoutiquesPage() {
         plan: selectedPlan.key,
         planName: selectedPlan.name,
         expiresAt,
-        features: ['orders', 'measurements', 'billing', 'reports', 'staff'],
+        features: ['orders', 'measurements', 'reports', 'staff'],
         isActive: true,
         maxOrders: selectedPlan.key === 'enterprise' ? 99999 : selectedPlan.key === 'pro' ? 5000 : selectedPlan.key === 'basic' ? 500 : 100,
         maxStaff: selectedPlan.key === 'enterprise' ? 50 : selectedPlan.key === 'pro' ? 10 : selectedPlan.key === 'basic' ? 5 : 2,
@@ -183,7 +183,7 @@ export default function BoutiquesPage() {
     }
   };
 
-  const ALL_FEATURES = ['orders', 'measurements', 'billing', 'reports', 'staff'];
+  const ALL_FEATURES = ['orders', 'measurements', 'reports', 'staff'];
 
   const filtered = boutiques.filter((b) =>
     !search.trim() ||

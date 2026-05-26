@@ -6,9 +6,9 @@ export const COLLECTIONS = {
   SUBSCRIPTION_PLANS: 'subscriptionPlans',
   ORDERS: 'orders',
   MEASUREMENTS: 'measurements',
-  BILLING: 'billing',
   DELETED_RECORDS: 'deletedRecords',
   CUSTOMERS: 'customers',
+  MEASUREMENT_TEMPLATES: 'measurementTemplates',
 } as const;
 
 export const boutiqueRef = (boutiqueId: string, sub: string) =>
