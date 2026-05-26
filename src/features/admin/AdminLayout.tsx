@@ -35,7 +35,7 @@ export default function AdminLayout() {
 
   const drawer = (
     <Box sx={{ width: DRAWER_W, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Box sx={{ p: 2.5, background: (t) => t.palette.brand.gradient, color: '#fff', minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
+      <Box sx={{ pl: 2.5, pr: 2.5, pb: 2, pt: 'max(20px, calc(env(safe-area-inset-top, 0px) + 8px))', background: (t) => t.palette.brand.gradient, color: '#fff', minHeight: 80, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
           <AdminPanelSettingsIcon sx={{ fontSize: 20 }} />
           <Typography fontFamily="'Playfair Display', serif" fontWeight={700} variant="subtitle1">Super Admin</Typography>
@@ -58,11 +58,12 @@ export default function AdminLayout() {
           </ListItemButton>
         ))}
       </List>
+      <Box sx={{ pb: 'env(safe-area-inset-bottom, 0px)' }} />
     </Box>
   );
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', background: (t) => t.palette.background.default }}>
+    <Box sx={{ display: 'flex', minHeight: '100dvh', background: (t) => t.palette.background.default }}>
       <Drawer
         variant={isDesktop ? 'permanent' : 'temporary'}
         open={isDesktop ? true : sidebarOpen}
@@ -74,7 +75,7 @@ export default function AdminLayout() {
       </Drawer>
 
       <Box component="main" sx={{ flex: 1, display: 'flex', flexDirection: 'column', ml: isDesktop ? `${DRAWER_W}px` : 0 }}>
-        <AppBar position="sticky" elevation={0} sx={{ zIndex: 1100 }}>
+        <AppBar position="sticky" elevation={0} sx={{ zIndex: 1100, paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <Toolbar sx={{ gap: 1 }}>
             {!isDesktop && (
               <IconButton edge="start" onClick={() => setSidebarOpen(true)} size="small"><MenuIcon /></IconButton>

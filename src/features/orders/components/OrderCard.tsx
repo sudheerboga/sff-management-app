@@ -41,15 +41,12 @@ function Avatar({ name, size = 38 }: { name: string; size?: number }) {
 }
 
 const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  pending:     { bg: 'rgba(230,81,0,.12)',    color: '#E65100' },
-  'in-progress':{ bg: 'rgba(74,111,212,.12)', color: '#4A6FD4' },
-  ready:       { bg: 'rgba(46,125,50,.12)',   color: '#2E7D32' },
-  delivered:   { bg: 'rgba(46,125,50,.12)',   color: '#2E7D32' },
-  cancelled:   { bg: 'rgba(0,0,0,.08)',       color: '#888' },
+  'in-progress': { bg: 'rgb(255 193 88 / 15%)', color: 'rgb(203 160 31)' },
+  delivered:     { bg: 'rgba(46,125,50,.12)',  color: '#2E7D32' },
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending', 'in-progress': 'In Progress', ready: 'Ready', delivered: 'Delivered', cancelled: 'Cancelled',
+  'in-progress': 'In Progress', delivered: 'Delivered',
 };
 
 export default function OrderCard({ order, onClick }: Props) {
@@ -59,19 +56,19 @@ export default function OrderCard({ order, onClick }: Props) {
   const [pressed, setPressed] = useState(false);
 
   const deliveryDate = order.deliveryDate;
-  const isOverdue  = deliveryDate && isPast(deliveryDate) && order.status !== 'delivered' && order.status !== 'cancelled';
+  const isOverdue  = deliveryDate && isPast(deliveryDate) && order.status !== 'delivered';
   const isDueToday = deliveryDate && isToday(deliveryDate);
 
   const cardBg     = T.isDark ? 'rgba(26,21,48,0.8)' : T.card;
   const cardBorder = isOverdue ? 'rgba(211,47,47,.3)' : (T.isDark ? 'rgba(155,127,212,0.15)' : T.border);
-  const sc         = STATUS_COLORS[order.status] || STATUS_COLORS.pending;
+  const sc         = STATUS_COLORS[order.status] || STATUS_COLORS['in-progress'];
 
   return (
     <>
       <div
           style={{
             background: cardBg,
-            border: `1.5px solid ${cardBorder}`,
+            // border: `1.5px solid ${cardBorder}`,
             borderRadius: T.r.lg,
             fontFamily: T.fontBody,
             cursor: 'pointer',
@@ -114,7 +111,7 @@ export default function OrderCard({ order, onClick }: Props) {
                 </div>
               </div>
               <div style={{ background: sc.bg, borderRadius: T.r.pill, padding: '4px 10px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: sc.color }}>{STATUS_LABELS[order.status]}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, color: sc.color }}>{STATUS_LABELS[order.status] || 'In Progress'}</span>
               </div>
             </div>
 
@@ -141,7 +138,7 @@ export default function OrderCard({ order, onClick }: Props) {
                 <span style={{ fontSize: 11, fontWeight: 700, color: T.danger.text, background: T.danger.bg, padding: '3px 9px', borderRadius: T.r.pill, border: `1px solid ${T.danger.border}` }}>
                   ₹{order.balanceAmount.toLocaleString('en-IN')} due
                 </span>
-              ) : order.status !== 'cancelled' && (
+              ) : (
                 <span style={{ fontSize: 11, fontWeight: 600, color: T.success.text, background: T.success.bg, padding: '3px 9px', borderRadius: T.r.pill }}>
                   Paid ✓
                 </span>
@@ -150,7 +147,7 @@ export default function OrderCard({ order, onClick }: Props) {
           </div>
 
           {/* ── Footer bar ── */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: `1px solid ${T.border}`, background: T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: `0 0 ${T.r.lg} ${T.r.lg}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 16px', borderTop: `1px solid ${T.border}`, background: T.isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)', borderRadius: '0 0 18px 18px' }}>
             {/* Delivery date */}
             <div style={{ fontSize: 11, fontWeight: 600, color: isOverdue ? T.danger.text : isDueToday ? T.warning.text : T.muted, display: 'flex', alignItems: 'center', gap: 4 }}>
               <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>

@@ -55,7 +55,7 @@ export default function AppShell() {
   }
 
   const content = (
-    <Box sx={{ display: 'flex', minHeight: '100vh', background: theme.palette.background.default }}>
+    <Box sx={{ display: 'flex', minHeight: '100dvh', background: theme.palette.background.default }}>
       <Sidebar
         open={isDesktop ? true : sidebarOpen}
         variant={isDesktop ? 'permanent' : 'temporary'}

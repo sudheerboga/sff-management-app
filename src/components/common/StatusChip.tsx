@@ -2,15 +2,12 @@ import { Chip } from '@mui/material';
 import { OrderStatus } from '@/types';
 
 const ORDER_STATUS: Record<OrderStatus, { label: string; color: string; bg: string }> = {
-  pending:     { label: 'Pending',     color: '#7a4f00', bg: '#fff3dc' },
   'in-progress': { label: 'In Progress', color: '#1e3a8a', bg: '#dbeafe' },
-  ready:       { label: 'Ready',       color: '#1e6b3e', bg: '#e8f5ee' },
-  delivered:   { label: 'Delivered',   color: '#4a1878', bg: '#f3e8ff' },
-  cancelled:   { label: 'Cancelled',   color: '#8b2020', bg: '#fdeaea' },
+  delivered:     { label: 'Delivered',   color: '#4a1878', bg: '#f3e8ff' },
 };
 
 export function OrderStatusChip({ status }: { status: OrderStatus }) {
-  const s = ORDER_STATUS[status] || ORDER_STATUS.pending;
+  const s = ORDER_STATUS[status] || ORDER_STATUS['in-progress'];
   return (
     <Chip
       label={s.label}

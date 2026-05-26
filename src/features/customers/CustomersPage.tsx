@@ -215,11 +215,8 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
   const rowBg = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
 
   const statusColor = (s: Order['status']): { text: string; bg: string } => {
-    if (s === 'pending')     return { text: T.warning.text, bg: T.warning.bg };
     if (s === 'in-progress') return { text: T.blue.d,       bg: T.blue.pale  };
-    if (s === 'ready')       return { text: T.violet.d,     bg: T.violet.pale};
     if (s === 'delivered')   return { text: T.success.text, bg: T.success.bg };
-    if (s === 'cancelled')   return { text: T.danger.text,  bg: T.danger.bg  };
     return { text: T.muted, bg: T.bg2 };
   };
 

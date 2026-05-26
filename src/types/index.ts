@@ -106,7 +106,7 @@ export interface CustomerPickResult {
 }
 
 // ─── Orders ────────────────────────────────────────────────────────────────
-export type OrderStatus = 'pending' | 'in-progress' | 'ready' | 'delivered' | 'cancelled';
+export type OrderStatus = 'in-progress' | 'delivered';
 
 export interface PaymentEntry {
   id: string;

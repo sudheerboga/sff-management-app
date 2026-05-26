@@ -10,8 +10,8 @@ import { useOrders } from '@/features/orders/hooks/useOrders';
 import { useNavigate } from 'react-router-dom';
 
 const STATUSES: { v: Order['status']; label: string }[] = [
-  { v: 'pending',   label: 'Pending'   },
-  { v: 'delivered', label: 'Delivered' },
+  { v: 'in-progress', label: 'In Progress' },
+  { v: 'delivered',   label: 'Delivered'   },
 ];
 
 interface Props {
@@ -57,11 +57,8 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
   const profit = order.totalAmount - (order.materialCost || 0);
 
   const statusColor = (s: Order['status']): { text: string; bg: string } => {
-    if (s === 'pending')     return { text: T.warning.text,  bg: T.warning.bg  };
-    if (s === 'in-progress') return { text: T.blue.d,        bg: T.blue.pale   };
-    if (s === 'ready')       return { text: T.violet.d,      bg: T.violet.pale };
-    if (s === 'delivered')   return { text: T.success.text,  bg: T.success.bg  };
-    if (s === 'cancelled')   return { text: T.danger.text,   bg: T.danger.bg   };
+    if (s === 'in-progress') return { text: T.blue.d,       bg: T.blue.pale  };
+    if (s === 'delivered')   return { text: T.success.text, bg: T.success.bg };
     return { text: T.muted, bg: T.bg2 };
   };
 
@@ -225,9 +222,19 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           onClick={() => {
             onClose();
             if (memberMeasurements.length > 0) {
-              navigate(`/measurements/view/${memberMeasurements[0].id}`, { state: { measurement: memberMeasurements[0] } });
+              navigate(`/measurements/edit/${memberMeasurements[0].id}`, { state: { measurement: memberMeasurements[0] } });
             } else {
-              navigate('/measurements/new', { state: { prefillPhone: order.customerPhone } });
+              navigate('/measurements/new', {
+                state: {
+                  prefillCustomer: {
+                    customerId:    order.customerId,
+                    customerName:  order.customerName,
+                    customerPhone: order.customerPhone,
+                    memberName:    order.memberName,
+                    memberId:      order.memberId,
+                  },
+                },
+              });
             }
           }}
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: rowBg, border: `1px solid ${T.border}`, borderRadius: T.r.md, cursor: 'pointer', fontFamily: T.fontBody }}
@@ -359,7 +366,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                       type="date"
                       value={payDate}
                       onChange={(e) => setPayDate(e.target.value)}
-                      style={{ width: '80%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }}
+                      style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text, colorScheme: isDark ? 'dark' : 'light' }}
                     />
                   </div>
                 </div>

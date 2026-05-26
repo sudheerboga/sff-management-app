@@ -12,9 +12,12 @@ interface Props {
   onChange: (v: CustomerPickResult) => void;
   customers: Customer[];
   errors?: { phone?: string; name?: string };
+  allowMemberSwitch?: boolean;
+  disabledMemberIds?: Set<string>; // members with existing records — shown but non-selectable
+  initialMemberId?: string;        // pre-select this member when customer auto-matches (e.g. from order nav)
 }
 
-export default function CustomerMemberPicker({ value, onChange, customers, errors }: Props) {
+export default function CustomerMemberPicker({ value, onChange, customers, errors, allowMemberSwitch = true, disabledMemberIds, initialMemberId }: Props) {
   const { T, isDark } = useAppTheme();
 
   // local phone input (raw — user types freely)
@@ -38,7 +41,10 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
     if (matchedCustomer) {
       if (!didAutoSelect.current || value.customerId !== matchedCustomer.id) {
         didAutoSelect.current = true;
-        const self = matchedCustomer.members.find((m) => m.relation === 'self') ?? matchedCustomer.members[0];
+        const preferred = initialMemberId
+          ? matchedCustomer.members.find((m) => m.id === initialMemberId)
+          : undefined;
+        const self = preferred ?? matchedCustomer.members.find((m) => m.relation === 'self') ?? matchedCustomer.members[0];
         onChange({
           customerId: matchedCustomer.id,
           customerName: matchedCustomer.name,
@@ -146,7 +152,7 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
             onBlur={() => setPhoneFocused(false)}
             placeholder="98765 43210"
             maxLength={10}
-            style={{ flex: 1, border: 'none', outline: 'none', padding: '13px 14px 13px 4px', fontSize: 15, fontFamily: T.fontBody, background: 'transparent', color: T.text, WebkitTextFillColor: T.text, fontWeight: 600, letterSpacing: 1 }}
+            style={{ flex: 1, border: 'none', outline: 'none', padding: '13px 14px 13px 4px', fontSize: 15, fontFamily: T.fontBody, background: 'transparent', color: T.text, WebkitTextFillColor: T.text, fontWeight: 600, letterSpacing: 1, width: 0 }}
           />
           {isExisting && (
             <span style={{ marginRight: 12, fontSize: 11, fontWeight: 700, color: T.success.text, background: T.success.bg, padding: '3px 8px', borderRadius: T.r.sm, flexShrink: 0 }}>
@@ -180,36 +186,51 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
             </div>
           </div>
 
-          {/* "Who is this for?" */}
-          <label style={{ ...labelStyle(false), marginBottom: 8 }}>Who is this for?</label>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {matchedCustomer.members.map((m) => {
-              const active = value.memberId === m.id;
-              return (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => handleSelectMember(m)}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: T.r.md,
-                    border: `1.5px solid ${active ? accentColor : T.border}`,
-                    background: active ? (isDark ? 'rgba(123,94,167,0.2)' : T.violet.pale) : 'transparent',
-                    color: active ? accentColor : T.text2,
-                    fontSize: 13,
-                    fontWeight: active ? 700 : 500,
-                    fontFamily: T.fontBody,
-                    cursor: 'pointer',
-                    transition: 'all .15s',
-                    display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  <span>{m.name}</span>
-                  <span style={{ fontSize: 10, opacity: .6, textTransform: 'capitalize' }}>{m.relation}</span>
-                </button>
-              );
-            })}
+          {/* "Who is this for?" — existing member tabs (hidden when allowMemberSwitch is false) */}
+          {allowMemberSwitch && (
+            <>
+              <label style={{ ...labelStyle(false), marginBottom: 8 }}>Who is this for?</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
+                {matchedCustomer.members.map((m) => {
+                  const active   = value.memberId === m.id;
+                  const disabled = disabledMemberIds?.has(m.id) ?? false;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => !disabled && handleSelectMember(m)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: T.r.md,
+                        border: `1.5px solid ${active ? accentColor : disabled ? T.border : T.border}`,
+                        background: active
+                          ? (isDark ? 'rgba(123,94,167,0.2)' : T.violet.pale)
+                          : disabled
+                            ? (isDark ? 'rgba(255,255,255,0.03)' : T.bg2)
+                            : 'transparent',
+                        color: active ? accentColor : disabled ? T.muted : T.text2,
+                        fontSize: 13,
+                        fontWeight: active ? 700 : 500,
+                        fontFamily: T.fontBody,
+                        cursor: disabled ? 'not-allowed' : 'pointer',
+                        opacity: disabled ? 0.65 : 1,
+                        transition: 'all .15s',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                      }}
+                    >
+                      <span>{m.name}</span>
+                      {disabled
+                        ? <span style={{ fontSize: 10, fontWeight: 700, color: T.success.text }}>✓ Saved</span>
+                        : <span style={{ fontSize: 10, opacity: .6, textTransform: 'capitalize' }}>{m.relation}</span>
+                      }
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
             {/* Add new member button */}
             {!showAddMember && (
               <button

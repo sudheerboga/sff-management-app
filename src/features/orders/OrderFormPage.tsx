@@ -46,6 +46,30 @@ function initLines(order?: Partial<Order>): ItemLine[] {
   return [emptyLine()];
 }
 
+interface DateInputProps {
+  label: string; value: string; onChange: (v: string) => void;
+  id: string; focusedId: string | null; onFocus: (id: string) => void; onBlur: () => void;
+  T: AppTheme; isDark: boolean; labelColor: string;
+}
+function DateInput({ label, value, onChange, id, focusedId, onFocus, onBlur, T, isDark, labelColor }: DateInputProps) {
+  const foc = focusedId === id;
+  return (
+    <div>
+      <label style={{ fontSize: 10, fontWeight: 700, color: foc ? labelColor : T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody, transition: 'color .2s' }}>
+        {label}
+      </label>
+      <input
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => onFocus(id)}
+        onBlur={onBlur}
+        style={{ ...inputBase(foc, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }}
+      />
+    </div>
+  );
+}
+
 // Defined at module level — prevents remount on every parent render
 interface FInputProps {
   label: string; value: string; onChange: (v: string) => void;
@@ -280,10 +304,10 @@ export default function OrderFormPage() {
   const secHead: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: labelColor, textTransform: 'uppercase', letterSpacing: '.12em', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 };
   const fi = { focusedId, onFocus: setFocusedId, onBlur: () => setFocusedId(null), T, isDark, labelColor };
 
-  const saveBarBottom = isDesktop ? 0 : 64;
+  const saveBarBottom = isDesktop ? 0 : 'calc(64px + env(safe-area-inset-bottom, 0px))';
 
   return (
-    <div style={{ fontFamily: T.fontBody, paddingBottom: isDesktop ? 90 : 160, overflowX: 'hidden' }}>
+    <div style={{ fontFamily: T.fontBody, paddingBottom: isDesktop ? 90 : 'calc(160px + env(safe-area-inset-bottom, 0px))', overflowX: 'hidden' }}>
 
       {/* ── Header ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
@@ -305,28 +329,53 @@ export default function OrderFormPage() {
       {/* ── Customer ── */}
       <div style={sec}>
         <div style={secHead}><div style={{ width: 14, height: 1, background: T.grad.brand, opacity: .6 }} />Customer Details</div>
-        <CustomerMemberPicker
-          value={customerPick}
-          onChange={(v) => { setCustomerPick(v); setPickErrors({}); }}
-          customers={customersQuery.data || []}
-          errors={pickErrors}
-        />
-        {/* member label shown when different from account holder */}
-        {customerPick.memberName && customerPick.memberName !== customerPick.customerName && (
-          <div style={{ marginTop: 10, marginBottom: 4, fontSize: 12, color: T.violet.d, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            Order for: {customerPick.memberName}
+        {isEdit ? (
+          /* Edit mode: read-only — no member switching */
+          <div style={{
+            padding: '12px 16px',
+            background: isDark ? 'rgba(123,94,167,0.1)' : T.violet.pale,
+            border: `1.5px solid ${T.violet.d}33`,
+            borderRadius: T.r.md,
+            display: 'flex', alignItems: 'center', gap: 12,
+          }}>
+            <div style={{ width: 36, height: 36, borderRadius: '50%', background: T.grad.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.3 }}>
+                {customerPick.memberName && customerPick.memberName !== customerPick.customerName
+                  ? customerPick.memberName
+                  : customerPick.customerName}
+              </div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
+                {customerPick.memberName && customerPick.memberName !== customerPick.customerName
+                  ? `${customerPick.customerName} · ${customerPick.customerPhone}`
+                  : customerPick.customerPhone}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.violet.d, background: isDark ? 'rgba(123,94,167,0.2)' : `${T.violet.d}18`, padding: '3px 10px', borderRadius: T.r.pill }}>
+              Editing
+            </span>
           </div>
+        ) : (
+          <>
+            <CustomerMemberPicker
+              value={customerPick}
+              onChange={(v) => { setCustomerPick(v); setPickErrors({}); }}
+              customers={customersQuery.data || []}
+              errors={pickErrors}
+            />
+            {customerPick.memberName && customerPick.memberName !== customerPick.customerName && (
+              <div style={{ marginTop: 10, marginBottom: 4, fontSize: 12, color: T.violet.d, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                Order for: {customerPick.memberName}
+              </div>
+            )}
+          </>
         )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12, marginTop: 14, marginBottom: 14 }}>
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Order Date</label>
-            <input type="date" value={orderDt} onChange={(e) => setOrderDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }} />
-          </div>
-          <div>
-            <label style={{ fontSize: 10, fontWeight: 700, color: T.muted, display: 'block', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.09em', fontFamily: T.fontBody }}>Delivery Date</label>
-            <input type="date" value={delivDt} onChange={(e) => setDelivDt(e.target.value)} style={{ ...inputBase(false, T), colorScheme: isDark ? 'dark' : 'light', width: '100%' }} />
-          </div>
+          <DateInput label="Order Date"    value={orderDt} onChange={setOrderDt} id="orderDt"  {...fi} />
+          <DateInput label="Delivery Date" value={delivDt} onChange={setDelivDt} id="delivDt"  {...fi} />
         </div>
       </div>
 
@@ -455,12 +504,11 @@ export default function OrderFormPage() {
       {/* ── Sticky Save bar ── */}
       <div style={{
         position: 'fixed', left: 0, right: 0, bottom: saveBarBottom,
-        padding: '12px 20px',
+        padding: '12px 16px 2rem',
         background: isDark ? 'rgba(13,10,24,0.96)' : 'rgba(253,250,247,0.96)',
         backdropFilter: 'blur(16px)',
         borderTop: `1px solid ${T.border}`,
         zIndex: 50,
-        paddingBottom: '2rem'
       }}>
         <button onClick={handleSave} disabled={loading || !customerPick.customerName.trim()}
           style={{

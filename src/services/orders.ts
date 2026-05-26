@@ -124,7 +124,7 @@ export async function createOrder(boutiqueId: string, data: CreateOrderData): Pr
     }] : [],
     paidAmount: data.paidAmount,
     balanceAmount: totalAmount - data.paidAmount,
-    status: 'pending' as OrderStatus,
+    status: 'in-progress' as OrderStatus,
     orderDate: data.orderDate || serverTimestamp(),
     deliveryDate: data.deliveryDate || null,
     notes: data.notes,
@@ -145,7 +145,7 @@ export async function updateOrderStatus(boutiqueId: string, orderId: string, sta
 }
 
 export async function updateOrderPayment(boutiqueId: string, orderId: string, paidAmount: number, totalAmount: number): Promise<void> {
-  let status: OrderStatus = 'pending';
+  let status: OrderStatus = 'in-progress';
   if (paidAmount >= totalAmount) status = 'delivered';
   await updateDoc(doc(db, COLLECTIONS.BOUTIQUES, boutiqueId, COLLECTIONS.ORDERS, orderId), {
     paidAmount,

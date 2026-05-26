@@ -17,9 +17,10 @@ export default function MeasurementViewPage() {
   const isStaff = user?.role === 'staff';
   const { query, deleteMutation } = useMeasurements();
 
+  // Prefer fresh query data; fall back to location state only while query is loading
   const measurement: Measurement | undefined =
-    (location.state as { measurement?: Measurement })?.measurement ??
-    query.data?.find((m) => m.id === measurementId);
+    query.data?.find((m) => m.id === measurementId) ??
+    (location.state as { measurement?: Measurement })?.measurement;
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [copied,     setCopied]     = useState(false);

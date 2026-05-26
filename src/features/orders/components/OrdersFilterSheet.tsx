@@ -22,11 +22,8 @@ const DATE_OPTS: { v: DatePreset; label: string }[] = [
 
 const STATUS_OPTS: { v: OrderStatus | 'all'; label: string }[] = [
   { v: 'all',         label: 'All' },
-  { v: 'pending',     label: 'Pending' },
   { v: 'in-progress', label: 'In Progress' },
-  { v: 'ready',       label: 'Ready' },
   { v: 'delivered',   label: 'Delivered' },
-  { v: 'cancelled',   label: 'Cancelled' },
 ];
 
 interface Props {
@@ -64,6 +61,7 @@ export default function OrdersFilterSheet({ open, initial, onClose, onApply }: P
     fontSize: 14, fontFamily: T.fontBody,
     outline: 'none', boxSizing: 'border-box',
     WebkitTextFillColor: T.text,
+    colorScheme: T.isDark ? 'dark' : 'light',
   };
 
   return (

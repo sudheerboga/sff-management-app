@@ -10,8 +10,7 @@ import PageHeader from '@/components/common/PageHeader';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Pending', 'in-progress': 'In Progress',
-  ready: 'Ready', delivered: 'Delivered', cancelled: 'Cancelled',
+  'in-progress': 'In Progress', delivered: 'Delivered',
 };
 
 export default function ReportsPage() {
@@ -118,8 +117,7 @@ export default function ReportsPage() {
   };
 
   const STATUS_COLORS: Record<string, string> = {
-    pending: T.warning.text, 'in-progress': T.blue.d,
-    ready: T.violet.d, delivered: T.success.text, cancelled: T.danger.text,
+    'in-progress': T.blue.d, delivered: T.success.text,
   };
 
   const cardStyle: React.CSSProperties = {
@@ -269,9 +267,9 @@ export default function ReportsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.fontBody, fontSize: 13 }}>
             <thead>
               <tr>
-                {['Month', 'Orders', 'Total Billed', 'Collected', 'Balance Due'].map((h, i) => (
+                {['Month', 'Orders', 'Total Billed', 'Balance Due'].map((h, i) => (
                   <th key={h} style={{
-                    padding: '8px 10px', textAlign: i === 0 ? 'left' : 'right',
+                    padding: '8px 8px', textAlign: i === 0 ? 'left' : 'right',
                     fontSize: 10, fontWeight: 700, color: T.muted,
                     textTransform: 'uppercase', letterSpacing: '.07em',
                     borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap',
@@ -282,19 +280,16 @@ export default function ReportsPage() {
             <tbody>
               {tableData.map((row) => (
                 <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
-                  <td style={{ padding: '8px 10px', borderBottom: `1px solid ${T.border}` }}>
+                  <td style={{ padding: '8px 8px', borderBottom: `1px solid ${T.border}` }}>
                     <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
                   </td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
+                  <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
                     {row.orders > 0 ? row.orders : '—'}
                   </td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
+                  <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
                     {row.revenue > 0 ? fmt(row.revenue) : '—'}
                   </td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.paid > 0 ? T.success.text : T.muted, fontWeight: row.paid > 0 ? 600 : 400 }}>
-                    {row.paid > 0 ? fmt(row.paid) : '—'}
-                  </td>
-                  <td style={{ padding: '8px 10px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
+                  <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
                     {row.balance > 0 ? fmt(row.balance) : '—'}
                   </td>
                 </tr>
@@ -302,11 +297,11 @@ export default function ReportsPage() {
             </tbody>
             <tfoot>
               <tr style={{ background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
-                <td style={{ padding: '8px 10px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: T.success.text }}>{tableTotal.paid > 0 ? fmt(tableTotal.paid) : '—'}</td>
-                <td style={{ padding: '8px 10px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
+                <td style={{ padding: '8px 8px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
+                <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
+                <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
+                {/* <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: T.success.text }}>{tableTotal.paid > 0 ? fmt(tableTotal.paid) : '—'}</td> */}
+                <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
               </tr>
             </tfoot>
           </table>
