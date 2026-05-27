@@ -25,10 +25,10 @@ interface ImageDraft {
   error: boolean;
 }
 
-interface ItemLine { id: number; name: string; amount: string; images: ImageDraft[] }
+interface ItemLine { id: number; name: string; amount: string; note: string; images: ImageDraft[] }
 
 const today = () => new Date().toISOString().split('T')[0];
-const emptyLine = (): ItemLine => ({ id: Date.now() + Math.random(), name: '', amount: '', images: [] });
+const emptyLine = (): ItemLine => ({ id: Date.now() + Math.random(), name: '', amount: '', note: '', images: [] });
 
 function initLines(order?: Partial<Order>): ItemLine[] {
   if (order?.items?.length)
@@ -36,6 +36,7 @@ function initLines(order?: Partial<Order>): ItemLine[] {
       id: Date.now() + idx,
       name: i.garment,
       amount: String(i.amount),
+      note: i.description || '',
       images: (i.images || []).map((img) => ({
         id: Math.random().toString(36).slice(2),
         url: img.url,
@@ -144,7 +145,16 @@ export default function OrderFormPage() {
   const balance          = Math.max(0, itemTotal - editPaidAmount);
   const profit           = itemTotal - editMaterialCost;
 
-  function updateLine(id: number, field: 'name' | 'amount', val: string) {
+  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(() => {
+    const s = new Set<number>();
+    return s;
+  });
+
+  function toggleNote(id: number) {
+    setExpandedNotes((prev) => { const s = new Set(prev); s.has(id) ? s.delete(id) : s.add(id); return s; });
+  }
+
+  function updateLine(id: number, field: 'name' | 'amount' | 'note', val: string) {
     setLines((prev) => prev.map((l) => l.id === id ? { ...l, [field]: val } : l));
   }
   function addLine()          { setLines((prev) => [...prev, emptyLine()]); }
@@ -210,7 +220,7 @@ export default function OrderFormPage() {
         .filter((l) => l.name.trim() && parseFloat(l.amount) > 0)
         .map((l) => ({
           garment: l.name.trim(),
-          description: '',
+          description: l.note.trim(),
           qty: 1,
           rate: parseFloat(l.amount),
           amount: parseFloat(l.amount),
@@ -368,6 +378,37 @@ export default function OrderFormPage() {
                   <button onClick={() => removeLine(line.id)} style={{ width: 32, height: 32, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: isDark ? 'rgba(248,113,113,0.12)' : '#fdeaea', border: 'none', borderRadius: T.r.sm, cursor: 'pointer', color: T.danger.text, fontSize: 14 }}>✕</button>
                 )}
               </div>
+
+              {/* Per-item note — shown on demand */}
+              {(expandedNotes.has(line.id) || line.note.trim().length > 0) ? (
+                <div style={{ marginTop: 6, position: 'relative' }}>
+                  <textarea
+                    autoFocus={expandedNotes.has(line.id) && line.note.trim().length === 0}
+                    value={line.note}
+                    onChange={(e) => updateLine(line.id, 'note', e.target.value)}
+                    placeholder="Item note — e.g. sleeve style, embroidery detail…"
+                    rows={2}
+                    style={{ width: '100%', boxSizing: 'border-box', resize: 'none', fontSize: 12, lineHeight: 1.5, padding: '7px 32px 7px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: isDark ? 'rgba(255,255,255,0.03)' : '#fffdf9', color: T.text, fontFamily: T.fontBody, outline: 'none', WebkitTextFillColor: T.text }}
+                  />
+                  {line.note.trim().length === 0 && (
+                    <button
+                      onClick={() => toggleNote(line.id)}
+                      style={{ position: 'absolute', top: 6, right: 6, width: 20, height: 20, border: 'none', background: 'none', cursor: 'pointer', color: T.muted, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      title="Remove note"
+                    >
+                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => toggleNote(line.id)}
+                  style={{ marginTop: 5, background: 'none', border: 'none', padding: '2px 0', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: T.muted, fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 4 }}
+                >
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add note
+                </button>
+              )}
 
               {/* Image grid (only shown when Cloudinary is configured) */}
               {cloudinaryConfig && (

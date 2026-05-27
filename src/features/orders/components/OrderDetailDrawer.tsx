@@ -15,6 +15,150 @@ const STATUSES: { v: Order['status']; label: string }[] = [
   { v: 'delivered',   label: 'Delivered'   },
 ];
 
+type GarmentKey = 'saree' | 'lehenga' | 'dress' | 'kurti' | 'shirt' | 'pant' | 'salwar' | 'jacket' | 'default';
+
+const GARMENT_RULES: [GarmentKey, ...string[]][] = [
+  ['saree',   'saree', 'sari'],
+  ['lehenga', 'leheng', 'lehan'],
+  ['dress',   'blouse', 'gown', 'skirt', 'frock', 'dress'],
+  ['kurti',   'kurti', 'kurta', 'top'],
+  ['shirt',   'shirt', 'tshirt'],
+  ['pant',    'pant', 'trouser', 'jean', 'bottom', 'palazzo'],
+  ['salwar',  'salwar', 'dupatta', 'chunni'],
+  ['jacket',  'churidar', 'churidhar', 'jacket', 'coat', 'shrug'],
+];
+
+const sp = { viewBox: '0 0 20 20', width: 20, height: 20, fill: 'none', stroke: 'currentColor', strokeWidth: 1.4, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+
+const GARMENT_SVG: Record<GarmentKey, JSX.Element> = {
+  saree: (
+    <svg {...sp}>
+      {/* wrapped body */}
+      <path d="M6 3 L4.5 17.5 Q4.5 18.5 6 18.5 L14 18.5 Q15.5 18.5 15.5 17.5 L14 3" />
+      {/* diagonal pallu drape */}
+      <path d="M6 3 Q10 6.5 14 9.5" />
+      {/* pleats at hem */}
+      <path d="M8.5 14 L8 18.5 M10 13.5 L10 18.5 M11.5 14 L12 18.5" />
+    </svg>
+  ),
+  lehenga: (
+    <svg {...sp}>
+      {/* bodice */}
+      <path d="M7.5 2 Q10 3.5 12.5 2 L12.5 7 L7.5 7 Z" />
+      {/* dramatic flared skirt */}
+      <path d="M7.5 7 L2.5 18.5 L17.5 18.5 L12.5 7" />
+      {/* tier / embroidery lines on skirt */}
+      <path d="M4.5 12.5 Q10 10.5 15.5 12.5" />
+      <path d="M3.5 16 Q10 13.5 16.5 16" />
+    </svg>
+  ),
+  dress: (
+    <svg {...sp}>
+      {/* scoop neck */}
+      <path d="M7.5 2 Q10 4.5 12.5 2" />
+      {/* short sleeves */}
+      <path d="M7.5 2 L5.5 5.5 M12.5 2 L14.5 5.5" />
+      {/* A-line body */}
+      <path d="M5.5 5.5 L4.5 18.5 L15.5 18.5 L14.5 5.5" />
+      {/* waist seam */}
+      <path d="M6.5 10.5 Q10 9.5 13.5 10.5" />
+    </svg>
+  ),
+  kurti: (
+    <svg {...sp}>
+      {/* band collar */}
+      <path d="M8 2 L8 3.5 Q10 4.5 12 3.5 L12 2 Q10 1 8 2 Z" />
+      {/* 3/4 sleeves */}
+      <path d="M8 3.5 L5 5 L4.5 12 M12 3.5 L15 5 L15.5 12" />
+      {/* long tunic body */}
+      <path d="M5 5 L4.5 18.5 L7.5 18.5 Q10 19.5 12.5 18.5 L15.5 18.5 L15 5" />
+      {/* side slit */}
+      <path d="M7.5 15 L4.5 18.5" />
+      {/* centre placket line */}
+      <path d="M10 4.5 L10 9" />
+    </svg>
+  ),
+  shirt: (
+    <svg {...sp}>
+      {/* spread collar */}
+      <path d="M8.5 2 L7 4.5 L10 5.5 L13 4.5 L11.5 2" />
+      {/* sleeves */}
+      <path d="M8.5 2 L5 7 L5.5 8.5 M11.5 2 L15 7 L14.5 8.5" />
+      {/* body */}
+      <path d="M5.5 8.5 L5 18.5 L15 18.5 L14.5 8.5" />
+      {/* placket */}
+      <line x1="10" y1="5.5" x2="10" y2="18.5" />
+      {/* buttons */}
+      <circle cx="10" cy="10" r="0.65" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="13" r="0.65" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="16" r="0.65" fill="currentColor" stroke="none" />
+    </svg>
+  ),
+  pant: (
+    <svg {...sp}>
+      {/* waistband */}
+      <rect x="4.5" y="2" width="11" height="2.5" rx="1.2" />
+      {/* left leg */}
+      <path d="M4.5 4.5 L5 18.5 Q5 19.5 6.5 19.5 L9.5 19.5 Q10 19.5 10 18.5 L10 11" />
+      {/* right leg */}
+      <path d="M15.5 4.5 L15 18.5 Q15 19.5 13.5 19.5 L10.5 19.5 Q10 19.5 10 18.5 L10 11" />
+      {/* crease lines */}
+      <path d="M7 4.5 L7.5 18.5 M13 4.5 L12.5 18.5" strokeDasharray="1.5 1.5" strokeWidth={0.9} />
+    </svg>
+  ),
+  salwar: (
+    <svg {...sp}>
+      {/* gathered waist with drawstring */}
+      <path d="M5 3.5 L15 3.5" />
+      <path d="M10 2 L10 5" />
+      <path d="M7 2.5 L7 4.5 M13 2.5 L13 4.5" strokeWidth={0.9} />
+      {/* wide legs */}
+      <path d="M5 3.5 L2 18 Q2 19.5 4 19.5 L9 19.5 Q10 19.5 10 18 L10 11" />
+      <path d="M15 3.5 L18 18 Q18 19.5 16 19.5 L11 19.5 Q10 19.5 10 18 L10 11" />
+      {/* ankle gather marks */}
+      <path d="M3 17 L2 19.5 M5 17.5 L4 19.5" strokeWidth={0.9} />
+      <path d="M17 17 L18 19.5 M15 17.5 L16 19.5" strokeWidth={0.9} />
+    </svg>
+  ),
+  jacket: (
+    <svg {...sp}>
+      {/* left lapel */}
+      <path d="M8 2 L6 6.5 L10 8.5" />
+      {/* right lapel */}
+      <path d="M12 2 L14 6.5 L10 8.5" />
+      {/* sleeves */}
+      <path d="M6 6.5 L4 15 L5.5 15.5 M14 6.5 L16 15 L14.5 15.5" />
+      {/* body */}
+      <path d="M6 6.5 L5.5 18.5 L14.5 18.5 L14 6.5" />
+      {/* front opening */}
+      <line x1="10" y1="8.5" x2="10" y2="18.5" />
+      {/* buttons */}
+      <circle cx="10" cy="12" r="0.75" fill="currentColor" stroke="none" />
+      <circle cx="10" cy="15.5" r="0.75" fill="currentColor" stroke="none" />
+      {/* pocket */}
+      <path d="M12 14 L13.5 14 L13.5 16.5 L12 16.5" strokeWidth={0.9} />
+    </svg>
+  ),
+  default: (
+    <svg {...sp}>
+      {/* needle */}
+      <path d="M5.5 16 L14.5 4.5" strokeWidth={1.5} />
+      {/* needle eye */}
+      <path d="M13.5 4 Q15 3.5 15.5 5 Q15 6 13.5 5.5" />
+      {/* thread */}
+      <path d="M6 15.5 Q3.5 10 7.5 7 Q11.5 4 13 6.5" strokeWidth={1.1} strokeDasharray="2 1.2" />
+    </svg>
+  ),
+};
+
+function garmentIcon(name: string): JSX.Element {
+  const lower = name.toLowerCase().replace(/[^a-z\s]/g, '');
+  for (const [type, ...stems] of GARMENT_RULES) {
+    if (stems.some((s) => lower.split(/\s+/).some((word) => word.startsWith(s)))) return GARMENT_SVG[type];
+  }
+  return GARMENT_SVG.default;
+}
+
 interface Props {
   order: Order | null;
   open: boolean;
@@ -42,7 +186,6 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
 
   if (!order) return null;
 
-  // Find measurements for this specific order member
   const allMeasurements = measurementsQuery.data || [];
   const memberMeasurements = order.customerId
     ? allMeasurements.filter((m) =>
@@ -63,18 +206,9 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
     return { text: T.muted, bg: T.bg2 };
   };
 
-  const rowBg   = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
-  const secLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10, display: 'block' };
-  const divider  = <div style={{ height: 1, background: T.border, margin: '4px 0' }} />;
-
-  function Row({ label, value, valueColor }: { label: string; value: string; valueColor?: string }) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0' }}>
-        <span style={{ fontSize: 13, color: T.text2, fontFamily: T.fontBody }}>{label}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: valueColor || T.text, fontFamily: T.fontBody }}>{value}</span>
-      </div>
-    );
-  }
+  const rowBg  = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
+  const sc     = statusColor(order.status);
+  const totalItems = order.items.length;
 
   return (
     <Drawer
@@ -83,8 +217,8 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       onClose={onClose}
       PaperProps={{
         sx: {
-          width: { xs: '100vw', sm: 400 },
-          background:'rgb(253 250 248)',
+          width: { xs: '100vw', sm: 420 },
+          background: isDark ? T.bg : 'rgb(250 248 246)',
           display: 'flex',
           flexDirection: 'column',
           p: 0,
@@ -93,41 +227,61 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       }}
     >
       {/* ── Header ── */}
-      <div style={{ padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody, background: '#aea9a31f' }}>
+      <div style={{
+        padding: 'calc(env(safe-area-inset-top, 0px) + 18px) 20px 0',
+        fontFamily: T.fontBody,
+        background: isDark ? 'rgba(255,255,255,0.03)' : '#fff',
+        borderBottom: `1px solid ${T.border}`,
+      }}>
+        {/* Top row: name + close */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.2 }}>
+            <div style={{ fontSize: 21, fontWeight: 800, color: T.text, fontFamily: T.fontDisplay, lineHeight: 1.15, letterSpacing: '-0.01em' }}>
               {order.customerName}
             </div>
+            {order.memberName && order.memberName !== order.customerName && (
+              <div style={{ fontSize: 12, color: T.violet.d, fontWeight: 600, marginTop: 2 }}>
+                For {order.memberName}
+              </div>
+            )}
             {order.customerPhone && (
-              <div style={{ fontSize: 13, color: T.muted, marginTop: 3 }}>{order.customerPhone}</div>
+              <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>{order.customerPhone}</div>
             )}
           </div>
           <button
             onClick={onClose}
-            style={{ width: 32, height: 32, borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, flexShrink: 0, marginLeft: 12 }}
+            style={{ width: 34, height: 34, borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, flexShrink: 0, marginLeft: 12 }}
           >
             <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, fontFamily: 'monospace', background: rowBg, padding: '3px 8px', borderRadius: T.r.sm, border: `1px solid ${T.border}` }}>
+
+        {/* Tags row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, fontFamily: 'monospace', background: rowBg, padding: '3px 9px', borderRadius: T.r.sm, border: `1px solid ${T.border}` }}>
             #{order.orderNumber}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: T.r.sm, ...statusColor(order.status) }}>
+          <span style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: T.r.sm, background: sc.bg, color: sc.text }}>
             {STATUSES.find(s => s.v === order.status)?.label || order.status}
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: T.r.sm, background: `${T.violet.d}12`, color: T.violet.d }}>
+            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+          </span>
+          <span style={{ fontSize: 11, color: T.muted, marginLeft: 2 }}>
+            {format(order.orderDate, 'd MMM yyyy')}
+            {order.deliveryDate && ` → ${format(order.deliveryDate, 'd MMM yyyy')}`}
           </span>
         </div>
       </div>
 
       {/* ── Scrollable body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16, fontFamily: T.fontBody }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: T.fontBody }}>
 
         {/* Status change */}
         {!isStaff && (
           <div>
-            <span style={secLabel}>Update Status</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Update Status</div>
+            <div style={{ display: 'flex', gap: 6 }}>
               {STATUSES.map(({ v, label }) => {
                 const active = order.status === v;
                 const c = statusColor(v);
@@ -136,8 +290,8 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                     key={v}
                     onClick={() => onStatusChange(v)}
                     style={{
-                      padding: '6px 14px', borderRadius: T.r.sm,
-                      border: `1.5px solid ${active ? c.text + '66' : T.border}`,
+                      flex: 1, padding: '8px 0', borderRadius: T.r.sm,
+                      border: `1.5px solid ${active ? c.text + '55' : T.border}`,
                       background: active ? c.bg : 'none',
                       color: active ? c.text : T.text2,
                       fontSize: 12, fontWeight: active ? 700 : 500,
@@ -145,7 +299,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                       transition: 'all .15s',
                     }}
                   >
-                    {label}
+                    {active && <span style={{ marginRight: 5 }}>✓</span>}{label}
                   </button>
                 );
               })}
@@ -153,72 +307,134 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           </div>
         )}
 
-        {/* Dates */}
-        <div style={{ background: rowBg, borderRadius: T.r.md, padding: '12px 14px', border: `1px solid ${T.border}` }}>
-          <Row label="Order Date"    value={format(order.orderDate, 'd MMM yyyy')} />
-          {order.deliveryDate && (
-            <>
-              {divider}
-              <Row label="Delivery Date" value={format(order.deliveryDate, 'd MMM yyyy')} />
-            </>
-          )}
-        </div>
-
-        {/* Items */}
+        {/* ── ITEMS — hero section ── */}
         <div>
-          <span style={secLabel}>Items</span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.1em' }}>Items Ordered</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}12`, padding: '2px 9px', borderRadius: T.r.pill }}>
+              {totalItems} {totalItems === 1 ? 'piece' : 'pieces'}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {order.items.map((item, i) => {
               const imgs = item.images || [];
               return (
-                <div key={i} style={{ background: rowBg, borderRadius: T.r.sm, border: `1px solid ${T.border}`, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <span style={{ width: 22, height: 22, borderRadius: T.r.sm, background: `${T.violet.d}18`, border: `1px solid ${T.violet.d}33`, color: T.violet.d, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div
+                  key={i}
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.04)' : '#fff',
+                    borderRadius: T.r.md,
+                    border: `1.5px solid ${T.border}`,
+                    overflow: 'hidden',
+                    boxShadow: isDark ? 'none' : '0 1px 4px rgba(0,0,0,0.06)',
+                  }}
+                >
+                  {/* Item header */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px' }}>
+                    {/* Icon + number */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{
+                        width: 44, height: 44, borderRadius: T.r.sm,
+                        background: `${T.violet.d}12`, border: `1.5px solid ${T.violet.d}25`,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: T.violet.d,
+                      }}>
+                        {garmentIcon(item.garment)}
+                      </div>
+                      <div style={{
+                        position: 'absolute', top: -5, right: -5,
+                        width: 17, height: 17, borderRadius: '50%',
+                        background: T.violet.d, color: '#fff',
+                        fontSize: 9, fontWeight: 800,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        border: `2px solid ${isDark ? T.bg : 'rgb(250 248 246)'}`,
+                      }}>
                         {i + 1}
-                      </span>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: T.text }}>{item.garment}</span>
+                      </div>
                     </div>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>₹{item.amount.toLocaleString('en-IN')}</span>
+
+                    {/* Name + label */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 15, fontWeight: 700, color: T.text, lineHeight: 1.2 }}>{item.garment}</div>
+                      {item.description ? (
+                        <div style={{ fontSize: 12, color: T.text2, marginTop: 3, lineHeight: 1.4 }}>{item.description}</div>
+                      ) : (
+                        <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>
+                          {imgs.length > 0 ? `${imgs.length} reference ${imgs.length === 1 ? 'image' : 'images'}` : 'No reference images'}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Amount */}
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: T.text, lineHeight: 1 }}>
+                        ₹{item.amount.toLocaleString('en-IN')}
+                      </div>
+                      <div style={{ fontSize: 8, color: T.muted, marginTop: 2, fontWeight: 600 }}>AMOUNT</div>
+                    </div>
                   </div>
+
+                  {/* Images — horizontal scroll strip */}
                   {imgs.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: '4px 14px 12px' }}>
-                      {imgs.map((img) => {
-                        const globalIdx = allImages.findIndex((x) => x.url === img.url && x.publicId === img.publicId);
-                        return (
-                          <div
-                            key={img.publicId || img.url}
-                            style={{ border: `1.5px solid ${T.border}`, borderRadius: T.r.md, overflow: 'hidden', cursor: 'pointer' }}
-                            onClick={() => setLightboxIdx(globalIdx)}
-                          >
-                            <div style={{ aspectRatio: '4/3', overflow: 'hidden' }}>
-                              <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                            </div>
-                            {img.note && (
-                              <div style={{ padding: '6px 9px', fontSize: 12, color: T.text2, lineHeight: 1.5, fontFamily: T.fontBody, borderTop: `1px solid ${T.border}` }}>
-                                {img.note}
+                    <div style={{ borderTop: `1px solid ${T.border}`, padding: '10px 14px', background: isDark ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.01)' }}>
+                      <div style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollbarWidth: 'none' }}>
+                        {imgs.map((img) => {
+                          const globalIdx = allImages.findIndex((x) => x.url === img.url && x.publicId === img.publicId);
+                          return (
+                            <div
+                              key={img.publicId || img.url}
+                              onClick={() => setLightboxIdx(globalIdx)}
+                              style={{ flexShrink: 0, cursor: 'pointer' }}
+                            >
+                              <div style={{
+                                width: 90, height: 110,
+                                borderRadius: T.r.sm,
+                                overflow: 'hidden',
+                                border: `1.5px solid ${T.border}`,
+                              }}>
+                                <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                               </div>
-                            )}
-                          </div>
-                        );
-                      })}
+                              {/* {img.note && (
+                                <div style={{ width: 90, fontSize: 10, color: T.text2, marginTop: 4, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                  {img.note}
+                                </div>
+                              )} */}
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                 </div>
               );
             })}
           </div>
+
+          {/* Items total */}
+          {/* <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 8, paddingRight: 2 }}>
+            <span style={{ fontSize: 12, color: T.muted, marginRight: 8 }}>Total</span>
+            <span style={{ fontSize: 16, fontWeight: 800, color: T.text }}>₹{order.totalAmount.toLocaleString('en-IN')}</span>
+          </div> */}
         </div>
 
         {/* Notes */}
         {order.notes && (
-          <div style={{ background: rowBg, borderRadius: T.r.md, padding: '12px 14px', border: `1px solid ${T.border}` }}>
-            <span style={secLabel}>Notes</span>
-            <p style={{ margin: 0, fontSize: 13, color: T.text2, lineHeight: 1.6, fontStyle: 'italic' }}>{order.notes}</p>
+          <div style={{
+            background: isDark ? 'rgba(255,220,100,0.05)' : 'rgba(255,220,100,0.12)',
+            borderRadius: T.r.md,
+            border: `1.5px solid rgba(200,165,0,0.25)`,
+            padding: '12px 14px',
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+          }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'rgba(150,120,0,0.8)', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 4 }}>Notes</div>
+              <p style={{ margin: 0, fontSize: 13, color: T.text2, lineHeight: 1.6 }}>{order.notes}</p>
+            </div>
           </div>
         )}
 
-        {/* Customer Measurements — tap to view/edit */}
+        {/* Customer Measurements */}
         <button
           onClick={() => {
             onClose();
@@ -238,29 +454,33 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
               });
             }
           }}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: rowBg, border: `1px solid ${T.border}`, borderRadius: T.r.md, cursor: 'pointer', fontFamily: T.fontBody }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: rowBg, border: `1.5px solid ${T.border}`, borderRadius: T.r.md, cursor: 'pointer', fontFamily: T.fontBody, textAlign: 'left' }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <svg width="14" height="14" fill="none" stroke={T.violet.d} strokeWidth="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="18" x2="13" y2="18"/></svg>
-            <span style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
-              {order.memberName && order.memberName !== order.customerName
-                ? `${order.memberName}'s Measurements`
-                : 'Customer Measurements'}
-            </span>
-            {memberMeasurements.length > 0 ? (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: T.r.pill, background: isDark ? 'rgba(74,111,212,0.15)' : T.blue.pale, color: T.blue.d }}>
-                {Object.keys(memberMeasurements[0].garments).length} garments · View
-              </span>
-            ) : (
-              <span style={{ fontSize: 10, fontWeight: 600, color: T.muted }}>Tap to add</span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 34, height: 34, borderRadius: T.r.sm, background: `${T.violet.d}12`, border: `1px solid ${T.violet.d}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <svg width="14" height="14" fill="none" stroke={T.violet.d} strokeWidth="2" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="18" x2="13" y2="18"/></svg>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 600, color: T.text }}>
+                {order.memberName && order.memberName !== order.customerName
+                  ? `${order.memberName}'s Measurements`
+                  : 'Customer Measurements'}
+              </div>
+              {memberMeasurements.length > 0 ? (
+                <div style={{ fontSize: 11, color: T.blue.d, marginTop: 2 }}>
+                  {Object.keys(memberMeasurements[0].garments).length} garments saved · Tap to view
+                </div>
+              ) : (
+                <div style={{ fontSize: 11, color: T.muted, marginTop: 2 }}>Not added yet · Tap to add</div>
+              )}
+            </div>
           </div>
           <svg width="14" height="14" fill="none" stroke={T.muted} strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
             <path d="M9 18l6-6-6-6"/>
           </svg>
         </button>
 
-        {/* Payment */}
+        {/* ── Payment — UNCHANGED ── */}
         <div style={{ borderRadius: T.r.md, border: `1px solid ${T.border}`, backgroundColor: 'white' }}>
 
           {/* ── Top: Total Bill + Balance Due highlighted ── */}
@@ -409,7 +629,6 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
 
           {/* ── Material Cost + Profit ── */}
           <div style={{ borderTop: `1px solid ${T.border}`, borderRadius: `0 0 ${T.r.md} ${T.r.md}` }}>
-            {/* Material cost row */}
             <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontSize: 12, color: T.muted, fontFamily: T.fontBody }}>
                 Material Cost
@@ -426,7 +645,6 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
               </button>
             </div>
 
-            {/* Inline material cost form */}
             {matFormOpen && (
               <div style={{ padding: '0 16px 12px', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
                 <div style={{ flex: 1 }}>
@@ -458,7 +676,6 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
               </div>
             )}
 
-            {/* Profit row */}
             <div style={{ padding: matFormOpen ? '0 16px 10px' : '0 16px 10px', borderTop: `1px dashed ${T.border}`, margin: '0 16px', paddingTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 11, color: T.muted, fontFamily: T.fontBody }}>Profit</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: profit >= 0 ? T.success.text : T.danger.text, fontFamily: T.fontBody }}>
@@ -500,13 +717,13 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           </>
         )}
       </div>
+
       {/* ── Lightbox ── */}
       {lightboxIdx !== null && allImages[lightboxIdx] && (
         <div
           onClick={() => setLightboxIdx(null)}
           style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', paddingTop: 'max(20px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: 'max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
         >
-          {/* Prev / Next */}
           {allImages.length > 1 && (
             <>
               <button
