@@ -7,6 +7,38 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 
 const RESEND_SECONDS = 30;
 
+const tabSp = { viewBox: '0 0 20 20', width: 16, height: 16, fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+
+const PHONE_ICON = (
+  <svg {...tabSp}>
+    {/* phone body */}
+    <rect x="5.5" y="1.5" width="9" height="17" rx="2.2" />
+    {/* speaker + camera row */}
+    <path d="M8.5 3.2 L11 3.2" strokeWidth={1.2} />
+    <circle cx="12.5" cy="3.2" r="0.6" fill="currentColor" stroke="none" />
+    {/* screen bounds */}
+    <path d="M5.5 5 L14.5 5" strokeWidth={0.8} />
+    <path d="M5.5 15.5 L14.5 15.5" strokeWidth={0.8} />
+    {/* screen content lines */}
+    <path d="M8 7.5 L12 7.5 M8 9.5 L12 9.5 M8 11.5 L10.5 11.5" strokeWidth={0.75} />
+    {/* home indicator bar */}
+    <path d="M8.5 17 L11.5 17" strokeWidth={1.6} />
+  </svg>
+);
+
+const ADMIN_ICON = (
+  <svg {...tabSp}>
+    {/* shackle */}
+    <path d="M7 8.5 L7 5.5 Q7 2.5 10 2.5 Q13 2.5 13 5.5 L13 8.5" />
+    {/* lock body */}
+    <rect x="4" y="8.5" width="12" height="9" rx="2.2" />
+    {/* keyhole circle */}
+    <circle cx="10" cy="13" r="1.6" />
+    {/* keyhole drop */}
+    <path d="M10 14.6 L10 16.5" strokeWidth={1.8} />
+  </svg>
+);
+
 export default function LoginPage() {
   const { T } = useAppTheme();
   const navigate = useNavigate();
@@ -142,11 +174,14 @@ export default function LoginPage() {
                 fontSize: 14, fontWeight: tab === t ? 700 : 500,
                 background: tab === t ? (T.isDark ? T.card : '#fff') : 'transparent',
                 color: tab === t ? T.text : T.muted,
-                boxShadow: tab === t ? T.sh.xs : 'none',
+                boxShadow: tab === t ? 'rgb(26 22 37 / 17%) 0px 1px 4px' : 'none',
                 transition: 'all .2s',
               }}
             >
-              {t === 'phone' ? '📱  Phone Login' : '🔒  Admin Login'}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                {t === 'phone' ? <div style={{ color: '#7B5EA7', paddingTop: '4px'}}>{PHONE_ICON}</div> : <div style={{ color: '#7B5EA7', paddingTop: '4px'}}>{ADMIN_ICON}</div>}
+                {t === 'phone' ? 'Phone Login' : 'Admin Login'}
+              </div>
             </button>
           ))}
         </div>

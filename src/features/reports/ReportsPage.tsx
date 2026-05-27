@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Box, Grid, Skeleton } from '@mui/material';
+import { Box, Grid, Skeleton, useMediaQuery } from '@mui/material';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
@@ -23,6 +23,7 @@ const LINE_COLORS = { orders: '#7DD3FC', delivered: '#C4B5FD' }; // soft sky + s
 
 export default function ReportsPage() {
   const { T, isDark } = useAppTheme();
+  const isMobile = useMediaQuery('(max-width: 480px)');
   const { query: ordersQuery } = useOrders();
   const orders = ordersQuery.data || [];
   const loading = ordersQuery.isLoading;
@@ -184,13 +185,13 @@ export default function ReportsPage() {
           </div>
 
       {/* ── Tab bar ── */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: `1.5px solid ${T.border}` }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 16, borderBottom: `1.5px solid ${T.border}` }}>
         {TABS.map(({ key, label }) => (
           <button
             key={key}
             onClick={() => setTab(key)}
             style={{
-              padding: '9px 16px', border: 'none', background: 'none',
+              padding: '9p 12px', border: 'none', background: 'none',
               fontFamily: T.fontBody, fontSize: 13,
               fontWeight: tab === key ? 700 : 500,
               color: tab === key ? T.violet.d : T.muted,
@@ -274,43 +275,80 @@ export default function ReportsPage() {
                 ))}
               </select>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.fontBody, fontSize: 13 }}>
-                <thead>
-                  <tr>
-                    {['Month', 'Orders', 'Total Billed', 'Balance Due'].map((h, i) => (
-                      <th key={h} style={{ padding: '6px', textAlign: i === 0 ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.07em', borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+            {isMobile ? (
+              <div style={{ fontFamily: T.fontBody }}>
+                {tableData.map((row) => (
+                  <div key={row.fullMonth} style={{ padding: '10px 2px', borderBottom: `1px solid ${T.border}`, background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
+                    <div style={{ fontWeight: row.isCurrent ? 700 : 600, color: row.isCurrent ? T.violet.d : T.text, fontSize: 13, marginBottom: 6 }}>{row.fullMonth}</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                      {[
+                        { label: 'Orders',  value: row.orders > 0  ? String(row.orders)   : '—', color: row.orders  > 0 ? T.text        : T.muted, weight: row.orders  > 0 ? 600 : 400 },
+                        { label: 'Billed',  value: row.revenue > 0 ? fmt(row.revenue)      : '—', color: row.revenue > 0 ? T.text        : T.muted, weight: 600 },
+                        { label: 'Due',     value: row.balance > 0 ? fmt(row.balance)      : '—', color: row.balance > 0 ? T.danger.text : T.muted, weight: row.balance > 0 ? 600 : 400 },
+                      ].map(({ label, value, color, weight }) => (
+                        <div key={label}>
+                          <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{label}</div>
+                          <div style={{ fontSize: 12, fontWeight: weight, color }}>{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div style={{ padding: '10px', background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
+                  <div style={{ fontWeight: 700, color: T.text, fontSize: 13, marginBottom: 6 }}>Total</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 4 }}>
+                    {[
+                      { label: 'Orders', value: tableTotal.orders  ? String(tableTotal.orders)      : '—', color: T.text },
+                      { label: 'Billed', value: tableTotal.revenue > 0 ? fmt(tableTotal.revenue)    : '—', color: T.violet.d },
+                      { label: 'Due',    value: tableTotal.balance > 0 ? fmt(tableTotal.balance)    : '—', color: tableTotal.balance > 0 ? T.danger.text : T.success.text },
+                    ].map(({ label, value, color }) => (
+                      <div key={label}>
+                        <div style={{ fontSize: 9, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 2 }}>{label}</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color }}>{value}</div>
+                      </div>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableData.map((row) => (
-                    <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
-                      <td style={{ padding: '6px', borderBottom: `1px solid ${T.border}` }}>
-                        <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
-                      </td>
-                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
-                        {row.orders > 0 ? row.orders : '—'}
-                      </td>
-                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
-                        {row.revenue > 0 ? fmt(row.revenue) : '—'}
-                      </td>
-                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
-                        {row.balance > 0 ? fmt(row.balance) : '—'}
-                      </td>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: T.fontBody, fontSize: 13 }}>
+                  <thead>
+                    <tr>
+                      {['Month', 'Orders', 'Total Billed', 'Balance Due'].map((h, i) => (
+                        <th key={h} style={{ padding: '6px', textAlign: i === 0 ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.07em', borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr style={{ background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
-                    <td style={{ padding: '6px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
-                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {tableData.map((row) => (
+                      <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
+                        <td style={{ padding: '6px', borderBottom: `1px solid ${T.border}` }}>
+                          <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
+                        </td>
+                        <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
+                          {row.orders > 0 ? row.orders : '—'}
+                        </td>
+                        <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
+                          {row.revenue > 0 ? fmt(row.revenue) : '—'}
+                        </td>
+                        <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
+                          {row.balance > 0 ? fmt(row.balance) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
+                      <td style={{ padding: '6px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
+                      <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
           </div>
         </>
       )}

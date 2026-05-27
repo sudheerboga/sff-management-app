@@ -1,6 +1,6 @@
 {
-  "name": "Boutique Ecosystem",
-  "short_name": "BEcosystem",
+  "name": "Boutique",
+  "short_name": "Boutique",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

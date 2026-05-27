@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Box, Grid, Skeleton, Fab } from '@mui/material';
+import { Box, Grid, Fab } from '@mui/material';
+import DotsLoader from '@/components/common/DotsLoader';
 import AddIcon from '@mui/icons-material/Add';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import { format } from 'date-fns';
@@ -129,13 +130,7 @@ export default function MeasurementsPage() {
       </div>
 
       {query.isLoading ? (
-        <Grid container spacing={1.5}>
-          {[1, 2, 3].map((i) => (
-            <Grid item xs={12} sm={6} md={4} key={i}>
-              <Skeleton variant="rounded" height={160} sx={{ borderRadius: 3 }} />
-            </Grid>
-          ))}
-        </Grid>
+        <DotsLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<StraightenIcon />}

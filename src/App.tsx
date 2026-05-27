@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -24,7 +24,9 @@ function AuthListener() {
     const unsubscribe = listenAuthState((user, loading) => {
       setUser(user);
       setLoading(loading);
-      setInitialized(true);
+      // Only mark initialized once role resolution is fully complete.
+      // Without this guard, the router renders while user=null and redirects to /login.
+      if (!loading) setInitialized(true);
     });
     return unsubscribe;
   }, [setUser, setLoading, setInitialized]);
@@ -32,9 +34,18 @@ function AuthListener() {
   return null;
 }
 
+const MIN_SPLASH_MS = 2000;
+
 function AppGate({ children }: { children: React.ReactNode }) {
   const initialized = useAuthStore((s) => s.initialized);
-  if (!initialized) return <LoadingScreen />;
+  const [minDone, setMinDone] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMinDone(true), MIN_SPLASH_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  if (!initialized || !minDone) return <LoadingScreen />;
   return <>{children}</>;
 }
 
