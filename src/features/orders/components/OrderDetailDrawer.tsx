@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ImageLightbox from '@/components/common/ImageLightbox';
 import { Drawer } from '@mui/material';
 import { format } from 'date-fns';
 import { Order } from '@/types';
@@ -715,47 +716,12 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
 
 
       {/* ── Lightbox ── */}
-      {lightboxIdx !== null && allImages[lightboxIdx] && (
-        <div
-          onClick={() => setLightboxIdx(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 1400, background: 'rgba(0,0,0,0.88)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px', paddingTop: 'max(20px, calc(env(safe-area-inset-top, 0px) + 12px))', paddingBottom: 'max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px))' }}
-        >
-          {allImages.length > 1 && (
-            <>
-              <button
-                onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx - 1 + allImages.length) % allImages.length); }}
-                style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
-              </button>
-              <button
-                onClick={(e) => { e.stopPropagation(); setLightboxIdx((lightboxIdx + 1) % allImages.length); }}
-                style={{ position: 'absolute', right: 16, top: '50%', transform: 'translateY(-50%)', width: 40, height: 40, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
-              </button>
-            </>
-          )}
-          <img
-            src={allImages[lightboxIdx].url}
-            alt=""
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: '100%', maxHeight: '75vh', objectFit: 'contain', borderRadius: 8, boxShadow: '0 20px 60px rgba(0,0,0,0.6)' }}
-          />
-          {(allImages[lightboxIdx].note || allImages[lightboxIdx].itemName) && (
-            <div style={{ marginTop: 14, textAlign: 'center', color: '#fff', fontSize: 13, lineHeight: 1.5 }}>
-              <div style={{ opacity: 0.5, fontSize: 11, marginBottom: 4 }}>{allImages[lightboxIdx].itemName}</div>
-              {allImages[lightboxIdx].note && <div>{allImages[lightboxIdx].note}</div>}
-            </div>
-          )}
-          <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{lightboxIdx + 1} / {allImages.length}</div>
-          <button
-            onClick={() => setLightboxIdx(null)}
-            style={{ position: 'absolute', top: 'max(16px, calc(env(safe-area-inset-top, 0px) + 8px))', right: 16, width: 36, height: 36, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
+      {lightboxIdx !== null && (
+        <ImageLightbox
+          images={allImages}
+          startIndex={lightboxIdx}
+          onClose={() => setLightboxIdx(null)}
+        />
       )}
     </Drawer>
   );
