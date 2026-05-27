@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { OrderStatus } from '@/types';
+import DateInput from '@/components/common/DateInput';
 
 export type DatePreset = 'all' | '7d' | '30d' | 'custom';
 export interface OrderFilters {
@@ -54,15 +55,6 @@ export default function OrdersFilterSheet({ open, initial, onClose, onApply }: P
     transition: 'all .15s',
   });
 
-  const dateField: React.CSSProperties = {
-    width: '100%', padding: '10px 12px',
-    border: `1.5px solid ${T.border}`, borderRadius: T.r.md,
-    background: T.inputBg, color: T.text,
-    fontSize: 14, fontFamily: T.fontBody,
-    outline: 'none', boxSizing: 'border-box',
-    WebkitTextFillColor: T.text,
-    colorScheme: T.isDark ? 'dark' : 'light',
-  };
 
   return (
     <>
@@ -140,16 +132,12 @@ export default function OrdersFilterSheet({ open, initial, onClose, onApply }: P
             {draft.datePreset === 'custom' && (
               <div style={{ display: 'flex', gap: 12, marginTop: 14 }}>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>From</div>
-                  <input type="date" value={draft.dateFrom}
-                    onChange={(e) => setDraft((d) => ({ ...d, dateFrom: e.target.value }))}
-                    style={dateField} />
+                  <DateInput label="From" value={draft.dateFrom}
+                    onChange={(v) => setDraft((d) => ({ ...d, dateFrom: v }))} />
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, color: T.muted, marginBottom: 6 }}>To</div>
-                  <input type="date" value={draft.dateTo}
-                    onChange={(e) => setDraft((d) => ({ ...d, dateTo: e.target.value }))}
-                    style={dateField} />
+                  <DateInput label="To" value={draft.dateTo}
+                    onChange={(v) => setDraft((d) => ({ ...d, dateTo: v }))} />
                 </div>
               </div>
             )}

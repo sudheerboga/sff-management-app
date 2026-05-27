@@ -27,7 +27,7 @@ export default function ReportsPage() {
   const orders = ordersQuery.data || [];
   const loading = ordersQuery.isLoading;
   const now = new Date();
-  const [tab,            setTab]            = useState<'summary' | 'revenue' | 'trends' | 'customers'>('summary');
+  const [tab,            setTab]            = useState<'summary' | 'revenue' | 'trends' | 'customers'>('revenue');
   const [tableEndOffset, setTableEndOffset] = useState(0);
   const [chartEndOffset, setChartEndOffset] = useState(0);
 
@@ -279,23 +279,23 @@ export default function ReportsPage() {
                 <thead>
                   <tr>
                     {['Month', 'Orders', 'Total Billed', 'Balance Due'].map((h, i) => (
-                      <th key={h} style={{ padding: '8px 8px', textAlign: i === 0 ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.07em', borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '6px', textAlign: i === 0 ? 'left' : 'right', fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.07em', borderBottom: `1.5px solid ${T.border}`, whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {tableData.map((row) => (
                     <tr key={row.fullMonth} style={{ background: row.isCurrent ? (isDark ? 'rgba(123,94,167,0.10)' : T.violet.pale) : 'transparent' }}>
-                      <td style={{ padding: '8px 8px', borderBottom: `1px solid ${T.border}` }}>
+                      <td style={{ padding: '6px', borderBottom: `1px solid ${T.border}` }}>
                         <span style={{ fontWeight: row.isCurrent ? 700 : 500, color: row.isCurrent ? T.violet.d : T.text }}>{row.fullMonth}</span>
                       </td>
-                      <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
+                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.orders > 0 ? T.text : T.muted, fontWeight: row.orders > 0 ? 600 : 400 }}>
                         {row.orders > 0 ? row.orders : '—'}
                       </td>
-                      <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
+                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, fontWeight: 600, color: row.revenue > 0 ? T.text : T.muted }}>
                         {row.revenue > 0 ? fmt(row.revenue) : '—'}
                       </td>
-                      <td style={{ padding: '8px 8px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
+                      <td style={{ padding: '6px', textAlign: 'right', borderBottom: `1px solid ${T.border}`, color: row.balance > 0 ? T.danger.text : T.muted, fontWeight: row.balance > 0 ? 600 : 400 }}>
                         {row.balance > 0 ? fmt(row.balance) : '—'}
                       </td>
                     </tr>
@@ -303,10 +303,10 @@ export default function ReportsPage() {
                 </tbody>
                 <tfoot>
                   <tr style={{ background: isDark ? 'rgba(255,255,255,0.04)' : T.bg2 }}>
-                    <td style={{ padding: '8px 8px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
-                    <td style={{ padding: '8px 8px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
+                    <td style={{ padding: '6px', fontWeight: 700, color: T.text, fontSize: 12 }}>Total</td>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.text }}>{tableTotal.orders || '—'}</td>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: T.violet.d }}>{tableTotal.revenue > 0 ? fmt(tableTotal.revenue) : '—'}</td>
+                    <td style={{ padding: '6px', textAlign: 'right', fontWeight: 700, color: tableTotal.balance > 0 ? T.danger.text : T.success.text }}>{tableTotal.balance > 0 ? fmt(tableTotal.balance) : '—'}</td>
                   </tr>
                 </tfoot>
               </table>

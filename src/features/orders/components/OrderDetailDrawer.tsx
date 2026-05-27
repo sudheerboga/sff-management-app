@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Drawer } from '@mui/material';
 import { format } from 'date-fns';
 import { Order } from '@/types';
+import DateInput from '@/components/common/DateInput';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { openWhatsAppBill } from '@/utils/whatsapp';
@@ -361,13 +362,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                     />
                   </div>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Date</div>
-                    <input
-                      type="date"
-                      value={payDate}
-                      onChange={(e) => setPayDate(e.target.value)}
-                      style={{ width: '100%', padding: '8px 10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 14, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text, colorScheme: isDark ? 'dark' : 'light' }}
-                    />
+                    <DateInput label="Date" value={payDate} onChange={setPayDate} padding="8px 12px" />
                   </div>
                 </div>
                 <div>
