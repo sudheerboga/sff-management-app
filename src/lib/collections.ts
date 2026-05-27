@@ -4,6 +4,7 @@ export const COLLECTIONS = {
   BOUTIQUE_USERS: 'boutiqueUsers',
   STAFF_INVITES: 'staffInvites',
   SUBSCRIPTION_PLANS: 'subscriptionPlans',
+  SUBSCRIPTION_PAYMENTS: 'subscriptionPayments',
   ORDERS: 'orders',
   MEASUREMENTS: 'measurements',
   DELETED_RECORDS: 'deletedRecords',

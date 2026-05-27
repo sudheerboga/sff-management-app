@@ -8,6 +8,7 @@ import { useMeasurementTemplates } from './hooks/useMeasurementTemplates';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import CustomerMemberPicker from '@/components/common/CustomerMemberPicker';
 import { useCustomers } from '@/features/customers/hooks/useCustomers';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Measurement, CustomerMeasurements, CustomerPickResult, CustomerMember } from '@/types';
 
 
@@ -64,6 +65,8 @@ export default function MeasurementFormPage() {
   const muiTheme    = useTheme();
   const isDesktop   = useMediaQuery(muiTheme.breakpoints.up('md'));
   const navigate    = useNavigate();
+  const { isReadOnly } = usePlanStatus();
+  useEffect(() => { if (isReadOnly) navigate('/measurements', { replace: true }); }, [isReadOnly, navigate]);
   const location    = useLocation();
   const { measurementId } = useParams<{ measurementId?: string }>();
   const isEdit = !!measurementId;

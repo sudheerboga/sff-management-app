@@ -5,6 +5,7 @@ import { Order } from '@/types';
 import DateInput from '@/components/common/DateInput';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 
 import { useMeasurements } from '@/features/measurements/hooks/useMeasurements';
 import { useOrders } from '@/features/orders/hooks/useOrders';
@@ -172,6 +173,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
   const { T, isDark } = useAppTheme();
   const user    = useAuthStore((s) => s.user);
   const isStaff = user?.role === 'staff';
+  const { isReadOnly } = usePlanStatus();
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const navigate = useNavigate();
   const { query: measurementsQuery } = useMeasurements();
@@ -249,7 +251,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
             )}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, marginLeft: 12 }}>
-            {!isStaff && (
+            {!isStaff && !isReadOnly && (
               <>
               <button
                   onClick={onDelete}
@@ -296,7 +298,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14, fontFamily: T.fontBody }}>
 
         {/* Status change */}
-        {!isStaff && (
+        {!isStaff && !isReadOnly && (
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 8 }}>Update Status</div>
             <div style={{ display: 'flex', gap: 6 }}>
@@ -329,9 +331,9 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
             <div style={{ fontSize: 10, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.1em' }}>Items Ordered</div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}12`, padding: '2px 9px', borderRadius: T.r.pill }}>
+            {/* <div style={{ fontSize: 11, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}12`, padding: '2px 9px', borderRadius: T.r.pill }}>
               {totalItems} {totalItems === 1 ? 'piece' : 'pieces'}
-            </div>
+            </div> */}
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -540,13 +542,15 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
               <span style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: 'uppercase', letterSpacing: '.08em' }}>
                 Payment History
               </span>
-              <button
-                onClick={() => { setPayFormOpen((v) => !v); setPayAmount(''); setPayDate(format(new Date(), 'yyyy-MM-dd')); setPayNote(''); }}
-                style={{ fontSize: 12, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}14`, border: `1px solid ${T.violet.d}33`, borderRadius: T.r.sm, padding: '4px 10px', cursor: 'pointer', fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 5 }}
-              >
-                <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Payment
-              </button>
+              {!isReadOnly && (
+                <button
+                  onClick={() => { setPayFormOpen((v) => !v); setPayAmount(''); setPayDate(format(new Date(), 'yyyy-MM-dd')); setPayNote(''); }}
+                  style={{ fontSize: 12, fontWeight: 700, color: T.violet.d, background: `${T.violet.d}14`, border: `1px solid ${T.violet.d}33`, borderRadius: T.r.sm, padding: '4px 10px', cursor: 'pointer', fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add Payment
+                </button>
+              )}
             </div>
 
             {/* Timeline */}

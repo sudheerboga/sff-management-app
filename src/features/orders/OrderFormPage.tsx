@@ -12,6 +12,7 @@ import { uploadToCloudinary } from '@/utils/cloudinary';
 import ConfirmDialog from '@/components/common/ConfirmDialog';
 import CustomerMemberPicker from '@/components/common/CustomerMemberPicker';
 import { useCustomers } from '@/features/customers/hooks/useCustomers';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Order, OrderItem, CustomerPickResult, CustomerMember } from '@/types';
 
 interface ImageDraft {
@@ -56,6 +57,8 @@ export default function OrderFormPage() {
   const muiTheme  = useTheme();
   const isDesktop = useMediaQuery(muiTheme.breakpoints.up('md'));
   const navigate  = useNavigate();
+  const { isReadOnly } = usePlanStatus();
+  useEffect(() => { if (isReadOnly) navigate('/dashboard', { replace: true }); }, [isReadOnly, navigate]);
   const location  = useLocation();
   const { orderId } = useParams<{ orderId?: string }>();
   const isEdit = !!orderId;

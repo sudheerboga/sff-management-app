@@ -1,6 +1,7 @@
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Typography, Divider, useMediaQuery, useTheme, AppBar, Toolbar, IconButton, Avatar, Tooltip, Menu, MenuItem, ListItemIcon as MuiListItemIcon } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import StorefrontIcon from '@mui/icons-material/Storefront';
+import CreditCardIcon from '@mui/icons-material/CreditCard';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
 import MenuIcon from '@mui/icons-material/Menu';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -14,8 +15,9 @@ import { useUiStore } from '@/stores/uiStore';
 import { signOut } from '@/services/auth';
 
 const NAV = [
-  { label: 'Dashboard', icon: <DashboardIcon />, path: '/admin' },
-  { label: 'Boutiques', icon: <StorefrontIcon />, path: '/admin/boutiques' },
+  { label: 'Dashboard',      icon: <DashboardIcon />,  path: '/admin' },
+  { label: 'Boutiques',      icon: <StorefrontIcon />, path: '/admin/boutiques' },
+  { label: 'Subscriptions',  icon: <CreditCardIcon />, path: '/admin/subscriptions' },
   { label: 'Trash & Recovery', icon: <DeleteSweepIcon />, path: '/admin/deleted' },
 ];
 

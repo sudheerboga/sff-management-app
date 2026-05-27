@@ -33,6 +33,11 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
+    // ── Subscription Payments ────────────────────────────────
+    match /subscriptionPayments/{paymentId} {
+      allow read, write: if isSuperAdmin();
+    }
+
     // ── Boutiques ─────────────────────────────────────────────
     match /boutiques/{boutiqueId} {
       allow read:   if isSuperAdmin() || isMemberOf(boutiqueId);

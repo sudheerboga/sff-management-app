@@ -219,6 +219,20 @@ export interface SubscriptionPlan {
   isActive: boolean;
 }
 
+export interface SubscriptionPayment {
+  id: string;
+  boutiqueId: string;
+  boutiqueName: string;
+  plan: string;
+  planName: string;
+  amount: number;
+  paidAt: Date;
+  validFrom: Date;
+  expiresAt: Date;
+  recordedBy: string;
+  notes?: string;
+}
+
 export interface MonthlyMetric {
   month: string;
   revenue: number;

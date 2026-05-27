@@ -9,6 +9,7 @@ import PageHeader from '@/components/common/PageHeader';
 import EmptyState from '@/components/common/EmptyState';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore } from '@/stores/authStore';
+import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Customer, Order, Measurement } from '@/types';
 
 const AVATAR_PALETTES: { bg: string; color: string }[] = [
@@ -243,6 +244,7 @@ interface DrawerProps {
 function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOrder, onNewMeasurement }: DrawerProps) {
   const { T, isDark } = useAppTheme();
   const navigate = useNavigate();
+  const { isReadOnly } = usePlanStatus();
   const [tab, setTab] = useState<'orders' | 'measurements'>('orders');
 
   const rowBg = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
@@ -287,22 +289,24 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
       </div>
 
       {/* Quick action buttons */}
-      <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', gap: 8 }}>
-        <button
-          onClick={onNewOrder}
-          style={{ flex: 1, padding: '10px', border: 'none', borderRadius: T.r.md, background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-        >
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          New Order
-        </button>
-        <button
-          onClick={onNewMeasurement}
-          style={{ flex: 1, padding: '10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: 'transparent', color: T.violet.d, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-        >
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="18" x2="13" y2="18"/></svg>
-          New Measurements
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div style={{ padding: '12px 16px', borderBottom: `1px solid ${T.border}`, display: 'flex', gap: 8 }}>
+          <button
+            onClick={onNewOrder}
+            style={{ flex: 1, padding: '10px', border: 'none', borderRadius: T.r.md, background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Order
+          </button>
+          <button
+            onClick={onNewMeasurement}
+            style={{ flex: 1, padding: '10px', border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: 'transparent', color: T.violet.d, fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="18" x2="13" y2="18"/></svg>
+            New Measurements
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: `1px solid ${T.border}` }}>
