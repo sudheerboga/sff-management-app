@@ -8,6 +8,7 @@ import { router } from '@/router';
 import { useAuthStore } from '@/stores/authStore';
 import { useUiStore } from '@/stores/uiStore';
 import { listenAuthState } from '@/services/auth';
+import LoadingScreen from '@/components/common/LoadingScreen';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,6 +32,12 @@ function AuthListener() {
   return null;
 }
 
+function AppGate({ children }: { children: React.ReactNode }) {
+  const initialized = useAuthStore((s) => s.initialized);
+  if (!initialized) return <LoadingScreen />;
+  return <>{children}</>;
+}
+
 export default function App() {
   const themeMode = useUiStore((s) => s.themeMode);
   const theme = useMemo(() => createAppTheme(themeMode), [themeMode]);
@@ -45,7 +52,9 @@ export default function App() {
           anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
         >
           <AuthListener />
-          <RouterProvider router={router} />
+          <AppGate>
+            <RouterProvider router={router} />
+          </AppGate>
         </SnackbarProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -222,7 +222,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
           onClick={() => {
             onClose();
             if (memberMeasurements.length > 0) {
-              navigate(`/measurements/edit/${memberMeasurements[0].id}`, { state: { measurement: memberMeasurements[0] } });
+              navigate(`/measurements/view/${memberMeasurements[0].id}`, { state: { measurement: memberMeasurements[0] } });
             } else {
               navigate('/measurements/new', {
                 state: {

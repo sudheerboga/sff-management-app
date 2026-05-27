@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Box, Fab, Grid, Skeleton } from '@mui/material';
+import { Box, Fab, Grid } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
@@ -16,6 +16,23 @@ import { useUiStore } from '@/stores/uiStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 import { usePlanStatus } from '@/hooks/usePlanStatus';
 import { Order, OrderStatus } from '@/types';
+
+function DotsLoader() {
+  return (
+    <>
+      <style>{`@keyframes ord-dot{0%,80%,100%{transform:scale(0);opacity:.25}40%{transform:scale(1);opacity:1}}`}</style>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '72px 0' }}>
+        {[0, 1, 2].map((i) => (
+          <div key={i} style={{
+            width: 11, height: 11, borderRadius: '50%',
+            background: '#7B5EA7', margin: '0 5px',
+            animation: `ord-dot 1.4s ease-in-out ${i * 0.16}s infinite`,
+          }} />
+        ))}
+      </div>
+    </>
+  );
+}
 
 export default function OrdersPage() {
   const { T } = useAppTheme();
@@ -180,13 +197,7 @@ export default function OrdersPage() {
 
       {/* ── Order list ── */}
       {query.isLoading ? (
-        <Grid container spacing={1.5}>
-          {[1, 2, 3, 4].map((i) => (
-            <Grid item xs={12} sm={6} key={i}>
-              <Skeleton variant="rounded" height={140} sx={{ borderRadius: 2 }} />
-            </Grid>
-          ))}
-        </Grid>
+        <DotsLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
           icon={<AssignmentIcon />}

@@ -11,6 +11,47 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { useAuthStore } from '@/stores/authStore';
 import { Customer, Order, Measurement } from '@/types';
 
+const AVATAR_PALETTES: { bg: string; color: string }[] = [
+  { bg: '#EDE7F6', color: '#5E35B1' },
+  { bg: '#FFF3E0', color: '#E65100' },
+  { bg: '#E0F2F1', color: '#00695C' },
+  { bg: '#FCE4EC', color: '#C2185B' },
+  { bg: '#E3F2FD', color: '#1565C0' },
+  { bg: '#F1F8E9', color: '#33691E' },
+  { bg: '#F3E5F5', color: '#6A1B9A' },
+  { bg: '#FBE9E7', color: '#BF360C' },
+  { bg: '#E0F7FA', color: '#006064' },
+  { bg: '#E8EAF6', color: '#283593' },
+];
+
+const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
+  'in-progress': { bg: 'rgb(255 193 88 / 15%)', color: 'rgb(173 131 54)' },
+  delivered:     { bg: 'rgba(46,125,50,.12)',    color: '#2E7D32'         },
+};
+
+const STATUS_LABELS: Record<string, string> = {
+  'in-progress': 'In Progress',
+  delivered:     'Delivered',
+};
+
+function namePalette(name: string) {
+  const hash = name.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return AVATAR_PALETTES[hash % AVATAR_PALETTES.length];
+}
+
+function Avatar({ name, size = 42 }: { name: string; size?: number }) {
+  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+  const { bg, color } = namePalette(name);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', flexShrink: 0,
+      background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <span style={{ fontSize: size * 0.34, fontWeight: 800, color }}>{initials}</span>
+    </div>
+  );
+}
+
 export default function CustomersPage() {
   const { T, isDark } = useAppTheme();
   const user = useAuthStore((s) => s.user);
@@ -113,15 +154,7 @@ export default function CustomersPage() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                  {/* Avatar */}
-                  <div style={{
-                    width: 42, height: 42, borderRadius: '50%',
-                    background: T.grad.brand,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0, color: '#fff', fontSize: 16, fontWeight: 700,
-                  }}>
-                    {c.name.charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar name={c.name} size={42} />
 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 15, fontWeight: 700, color: T.text, marginBottom: 2 }}>{c.name}</div>
@@ -214,12 +247,6 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
 
   const rowBg = isDark ? 'rgba(255,255,255,0.03)' : T.bg2;
 
-  const statusColor = (s: Order['status']): { text: string; bg: string } => {
-    if (s === 'in-progress') return { text: T.blue.d,       bg: T.blue.pale  };
-    if (s === 'delivered')   return { text: T.success.text, bg: T.success.bg };
-    return { text: T.muted, bg: T.bg2 };
-  };
-
   return (
     <Drawer
       anchor="right"
@@ -237,9 +264,7 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
       {/* Header */}
       <div style={{ padding: 'calc(env(safe-area-inset-top, 0px) + 20px) 20px 16px', borderBottom: `1px solid ${T.border}`, fontFamily: T.fontBody }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 12 }}>
-          <div style={{ width: 48, height: 48, borderRadius: '50%', background: T.grad.brand, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20, fontWeight: 700, flexShrink: 0 }}>
-            {customer.name.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={customer.name} size={48} />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: T.fontDisplay }}>{customer.name}</div>
             <div style={{ fontSize: 13, color: T.muted }}>+91 {customer.phone}</div>
@@ -306,7 +331,7 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {orders.map((o) => {
-                const sc = statusColor(o.status);
+                const sc = STATUS_COLORS[o.status] || STATUS_COLORS['in-progress'];
                 return (
                   <div key={o.id}
                     onClick={() => { onClose(); navigate('/dashboard', { state: { openOrderId: o.id } }); }}
@@ -318,7 +343,7 @@ function CustomerDetailDrawer({ customer, orders, measurements, onClose, onNewOr
                           <span style={{ fontSize: 11, marginLeft: 6, color: T.violet.d, fontWeight: 600 }}>for {o.memberName}</span>
                         )}
                       </div>
-                      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: T.r.sm, ...sc }}>{o.status}</span>
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: T.r.pill, background: sc.bg, color: sc.color }}>{STATUS_LABELS[o.status] || 'In Progress'}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <span style={{ fontSize: 12, color: T.muted }}>{format(o.orderDate, 'd MMM yyyy')}</span>

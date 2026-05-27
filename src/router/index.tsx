@@ -21,18 +21,16 @@ const AdminDashboard = lazy(() => import('@/features/admin/pages/AdminDashboard'
 const BoutiquesPage = lazy(() => import('@/features/admin/pages/BoutiquesPage'));
 const DeletedRecordsPage = lazy(() => import('@/features/admin/pages/DeletedRecordsPage'));
 
+// App.tsx gates the router until auth is initialized, so loading is always false here.
+
 function BoutiqueGuard() {
   const user = useAuthStore((s) => s.user);
-  const loading = useAuthStore((s) => s.loading);
-  if (loading) return <LoadingScreen />;
   if (!user || !['admin', 'staff'].includes(user.role)) return <Navigate to="/login" replace />;
   return <Outlet />;
 }
 
 function AdminGuard() {
   const user = useAuthStore((s) => s.user);
-  const loading = useAuthStore((s) => s.loading);
-  if (loading) return <LoadingScreen />;
   if (!user || user.role !== 'superAdmin') return <Navigate to="/login" replace />;
   return <Outlet />;
 }
@@ -45,9 +43,7 @@ function AdminOnlyGuard() {
 
 function RootRedirect() {
   const user = useAuthStore((s) => s.user);
-  const loading = useAuthStore((s) => s.loading);
-  if (loading) return <LoadingScreen />;
-  if (!user) return <Navigate to="/splash" replace />;
+  if (!user) return <Navigate to="/login" replace />;
   if (user.role === 'superAdmin') return <Navigate to="/admin" replace />;
   return <Navigate to="/dashboard" replace />;
 }

@@ -4,7 +4,7 @@ import { ThemeProvider } from '@mui/material/styles';
 import BlockIcon from '@mui/icons-material/Block';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { useQuery } from '@tanstack/react-query';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import TopBar from './TopBar';
 import BottomNav from './BottomNav';
 import Sidebar from './Sidebar';
@@ -22,6 +22,7 @@ export default function AppShell() {
   const setSidebarOpen = useUiStore((s) => s.setSidebarOpen);
   const themeMode = useUiStore((s) => s.themeMode);
   const user = useAuthStore((s) => s.user);
+  const location = useLocation();
 
   const { data: boutique } = useQuery({
     queryKey: ['boutique', user?.boutiqueId],
@@ -55,42 +56,57 @@ export default function AppShell() {
   }
 
   const content = (
-    <Box sx={{ display: 'flex', minHeight: '100dvh', background: theme.palette.background.default }}>
-      <Sidebar
-        open={isDesktop ? true : sidebarOpen}
-        variant={isDesktop ? 'permanent' : 'temporary'}
-        width={SIDEBAR_WIDTH}
-        onClose={() => setSidebarOpen(false)}
-      />
-      <Box
-        component="main"
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          ml: isDesktop ? `${SIDEBAR_WIDTH}px` : 0,
-          minHeight: '100vh',
-          pb: isDesktop ? 0 : 'calc(72px + env(safe-area-inset-bottom, 0px))',
-        }}
-      >
-        <TopBar onMenuClick={() => setSidebarOpen(true)} showMenu={!isDesktop} />
-        {isPlanReadOnly && (
-          <Alert
-            severity="warning"
-            icon={<WarningAmberIcon fontSize="small" />}
-            sx={{ borderRadius: 0, py: 0.5, px: { xs: 2, sm: 3 }, fontSize: 13 }}
+    <>
+      <style>{`
+        @keyframes pageIn {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0);    }
+        }
+      `}</style>
+      <Box sx={{ display: 'flex', minHeight: '100dvh', background: theme.palette.background.default }}>
+        <Sidebar
+          open={isDesktop ? true : sidebarOpen}
+          variant={isDesktop ? 'permanent' : 'temporary'}
+          width={SIDEBAR_WIDTH}
+          onClose={() => setSidebarOpen(false)}
+        />
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            ml: isDesktop ? `${SIDEBAR_WIDTH}px` : 0,
+            minHeight: '100vh',
+            pb: isDesktop ? 0 : 'calc(72px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          <TopBar onMenuClick={() => setSidebarOpen(true)} showMenu={!isDesktop} />
+          {isPlanReadOnly && (
+            <Alert
+              severity="warning"
+              icon={<WarningAmberIcon fontSize="small" />}
+              sx={{ borderRadius: 0, py: 0.5, px: { xs: 2, sm: 3 }, fontSize: 13 }}
+            >
+              {isPlanExpired
+                ? 'Your plan has expired. You can view existing data but cannot add or edit records. Please renew your subscription.'
+                : 'Your plan is inactive. You can view existing data but cannot add or edit records. Contact support to reactivate.'}
+            </Alert>
+          )}
+          <Box
+            key={location.pathname}
+            sx={{
+              flex: 1, px: { xs: 2, sm: 3 }, py: 2,
+              maxWidth: 1200, mx: 'auto', width: '100%',
+              animation: 'pageIn .28s cubic-bezier(0.4,0,0.2,1)',
+            }}
           >
-            {isPlanExpired
-              ? 'Your plan has expired. You can view existing data but cannot add or edit records. Please renew your subscription.'
-              : 'Your plan is inactive. You can view existing data but cannot add or edit records. Contact support to reactivate.'}
-          </Alert>
-        )}
-        <Box sx={{ flex: 1, px: { xs: 2, sm: 3 }, py: 2, maxWidth: 1200, mx: 'auto', width: '100%' }}>
-          <Outlet />
+            <Outlet />
+          </Box>
         </Box>
+        {!isDesktop && <BottomNav />}
       </Box>
-      {!isDesktop && <BottomNav />}
-    </Box>
+    </>
   );
 
   return boutiqueTheme ? (
