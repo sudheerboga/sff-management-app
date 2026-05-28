@@ -1,40 +1,45 @@
 import {
   signInWithEmailAndPassword,
-  signInWithPhoneNumber,
+  createUserWithEmailAndPassword,
+  updatePassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  RecaptchaVerifier,
-  ConfirmationResult,
   User,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, secondaryAuth, db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
-import { AuthUser, StaffInvite } from '@/types';
+import { AuthUser } from '@/types';
 
-let recaptchaVerifier: RecaptchaVerifier | null = null;
-
-export function setupRecaptcha(containerId: string): RecaptchaVerifier {
-  if (recaptchaVerifier) {
-    try { recaptchaVerifier.clear(); } catch { /* ignore */ }
-    recaptchaVerifier = null;
-  }
-  const container = document.getElementById(containerId);
-  if (container) container.innerHTML = '';
-  recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
-    size: 'invisible',
-    callback: () => {},
-  });
-  return recaptchaVerifier;
+export function phoneToEmail(phone: string): string {
+  const digits = phone.replace(/^\+91/, '').replace(/\D/g, '');
+  return `${digits}@gmail.com`;
 }
 
-export async function sendPhoneOtp(phone: string, containerId: string): Promise<ConfirmationResult> {
-  const verifier = setupRecaptcha(containerId);
-  return signInWithPhoneNumber(auth, phone, verifier);
+export async function signInWithPhone(phone: string, password: string): Promise<void> {
+  await signInWithEmailAndPassword(auth, phoneToEmail(phone), password);
 }
 
 export async function signInAdmin(email: string, password: string): Promise<void> {
   await signInWithEmailAndPassword(auth, email, password);
+}
+
+// Creates a Firebase Auth account for a boutique user using phone+password.
+// Uses the secondary app so the super admin's session is not disturbed.
+export async function createPhoneUser(phone: string): Promise<string> {
+  const { user } = await createUserWithEmailAndPassword(secondaryAuth, phoneToEmail(phone), phone);
+  await firebaseSignOut(secondaryAuth);
+  return user.uid;
+}
+
+export async function changePassword(newPassword: string): Promise<void> {
+  const currentUser = auth.currentUser;
+  if (!currentUser) throw new Error('Not authenticated');
+  await updatePassword(currentUser, newPassword);
+}
+
+export async function clearMustResetPassword(uid: string): Promise<void> {
+  await updateDoc(doc(db, COLLECTIONS.BOUTIQUE_USERS, uid), { mustResetPassword: false });
 }
 
 export async function signOut(): Promise<void> {
@@ -42,7 +47,7 @@ export async function signOut(): Promise<void> {
 }
 
 export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | null> {
-  const { uid, phoneNumber, email } = firebaseUser;
+  const { uid, email } = firebaseUser;
 
   const superAdminSnap = await getDoc(doc(db, COLLECTIONS.SUPER_ADMINS, uid));
   if (superAdminSnap.exists()) {
@@ -59,43 +64,19 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
     const boutiqueName = boutiqueData?.name || 'Boutique';
     return {
       uid,
-      phone: phoneNumber ?? undefined,
+      phone: data.phone as string ?? undefined,
       role: data.role as 'admin' | 'staff',
       boutiqueId: data.boutiqueId,
       boutiqueName,
       name: data.name || 'User',
       cloudinary: boutiqueData?.cloudinary ?? undefined,
+      mustResetPassword: (data.mustResetPassword as boolean) ?? false,
     };
   }
 
-  // Check staff invite by phone number
-  if (phoneNumber) {
-    const inviteSnap = await getDoc(doc(db, COLLECTIONS.STAFF_INVITES, phoneNumber));
-    if (inviteSnap.exists()) {
-      const invite = inviteSnap.data() as StaffInvite;
-      await setDoc(doc(db, COLLECTIONS.BOUTIQUE_USERS, uid), {
-        uid,
-        boutiqueId: invite.boutiqueId,
-        name: invite.name,
-        phone: phoneNumber,
-        role: invite.role,
-        isActive: true,
-        createdAt: serverTimestamp(),
-      });
-      const boutiqueSnap = await getDoc(doc(db, COLLECTIONS.BOUTIQUES, invite.boutiqueId));
-      const boutiqueData = boutiqueSnap.exists() ? boutiqueSnap.data() : null;
-      const boutiqueName = boutiqueData?.name || 'Boutique';
-      return {
-        uid,
-        phone: phoneNumber,
-        role: invite.role,
-        boutiqueId: invite.boutiqueId,
-        boutiqueName,
-        name: invite.name,
-        cloudinary: boutiqueData?.cloudinary ?? undefined,
-      };
-    }
-  }
+  // Auto-provision: first login for a newly invited user whose Firestore doc
+  // was already created by the admin via createPhoneUser + setDoc
+  // (no legacy staffInvites lookup needed)
 
   return null;
 }
@@ -106,7 +87,7 @@ export function listenAuthState(callback: (user: AuthUser | null, loading: boole
       callback(null, false);
       return;
     }
-    callback(null, true); // signal loading while role is being resolved
+    callback(null, true);
     try {
       const user = await resolveUserRole(firebaseUser);
       callback(user, false);
@@ -115,3 +96,4 @@ export function listenAuthState(callback: (user: AuthUser | null, loading: boole
     }
   });
 }
+

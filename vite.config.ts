@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'logo192.png', 'logo512.png'],
       manifest: {
-        name: 'Boutique Ecosystem',
-        short_name: 'Boutique Ecosystem',
+        name: 'Boutiqo',
+        short_name: 'Boutiqo',
         description: 'Boutique order and measurement management',
         theme_color: '#7B5EA7',
         background_color: '#0d0a18',

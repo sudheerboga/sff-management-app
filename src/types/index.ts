@@ -21,6 +21,7 @@ export interface AuthUser {
   boutiqueName?: string;
   name: string;
   cloudinary?: CloudinaryConfig;
+  mustResetPassword?: boolean;
 }
 
 export interface BoutiqueSubscription {

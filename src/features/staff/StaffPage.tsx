@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   Box, Card, CardContent, Typography, Grid, Chip, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, MenuItem, Avatar, Switch, FormControlLabel,
+  TextField, MenuItem, Avatar, Switch, FormControlLabel, InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import PeopleIcon from '@mui/icons-material/People';
@@ -24,7 +24,7 @@ export default function StaffPage() {
   const { isReadOnly } = usePlanStatus();
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteName, setInviteName] = useState('');
-  const [invitePhone, setInvitePhone] = useState('+91');
+  const [invitePhone, setInvitePhone] = useState('');
   const [inviteRole, setInviteRole] = useState<'admin' | 'staff'>('staff');
 
   const { data: staff = [], isLoading } = useQuery({
@@ -50,7 +50,7 @@ export default function StaffPage() {
       enqueueSnackbar(`${inviteName} invited. They can now log in with their phone.`, { variant: 'success' });
       setInviteOpen(false);
       setInviteName('');
-      setInvitePhone('+91');
+      setInvitePhone('');
     },
     onError: () => enqueueSnackbar('Failed to invite staff', { variant: 'error' }),
   });
@@ -175,9 +175,11 @@ export default function StaffPage() {
             <TextField
               label="Phone Number"
               value={invitePhone}
-              onChange={(e) => setInvitePhone(e.target.value)}
+              onChange={(e) => setInvitePhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
               fullWidth
+              inputMode="numeric"
               helperText="Staff will log in using this phone number"
+              InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
             />
             <TextField
               label="Role"

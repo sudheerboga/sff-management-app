@@ -92,6 +92,17 @@ export default function OrderCard({ order, onClick }: Props) {
                 <div style={{ fontSize: 15, fontWeight: 700, color: T.text, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.25 }}>
                   {order.memberName && order.memberName !== order.customerName ? order.memberName : order.customerName}
                 </div>
+
+                {/* Parent / account-holder name — shown when order is for a family member */}
+                {order.memberName && order.memberName !== order.customerName && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                    <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ color: T.muted, flexShrink: 0 }}><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+                    <span style={{ fontSize: 12, color: T.text2, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {order.customerName}
+                    </span>
+                  </div>
+                )}
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 2, flexWrap: 'wrap' }}>
                   <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.06em', background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                     #{order.orderNumber}
@@ -104,9 +115,6 @@ export default function OrderCard({ order, onClick }: Props) {
                         <span style={{ fontSize: 11, color: T.muted }}>{order.customerPhone}</span>
                       </span>
                     </>
-                  )}
-                  {order.memberName && order.memberName !== order.customerName && (
-                    <span style={{ fontSize: 10, color: T.muted }}>· {order.customerName}</span>
                   )}
                 </div>
               </div>

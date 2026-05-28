@@ -8,8 +8,13 @@ import {
   query,
   where,
   orderBy,
+  startAfter,
+  limit,
+  getCountFromServer,
   serverTimestamp,
   Timestamp,
+  QueryDocumentSnapshot,
+  DocumentData,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
@@ -73,6 +78,37 @@ export async function getOrders(boutiqueId: string): Promise<Order[]> {
   const q = query(ordersCol(boutiqueId), where('isDeleted', '==', false), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
   return snap.docs.map((d) => fromFirestore(d.id, d.data() as Record<string, unknown>));
+}
+
+export interface OrdersPage {
+  orders: Order[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+export async function getOrdersPage(
+  boutiqueId: string,
+  cursor: QueryDocumentSnapshot<DocumentData> | null,
+  pageSize = 25,
+): Promise<OrdersPage> {
+  const constraints = cursor
+    ? [where('isDeleted', '==', false), orderBy('createdAt', 'desc'), startAfter(cursor), limit(pageSize + 1)]
+    : [where('isDeleted', '==', false), orderBy('createdAt', 'desc'), limit(pageSize + 1)];
+  const q = query(ordersCol(boutiqueId), ...constraints);
+  const snap = await getDocs(q);
+  const hasMore = snap.docs.length > pageSize;
+  const pageDocs = hasMore ? snap.docs.slice(0, pageSize) : snap.docs;
+  return {
+    orders: pageDocs.map((d) => fromFirestore(d.id, d.data() as Record<string, unknown>)),
+    lastDoc: pageDocs.length > 0 ? pageDocs[pageDocs.length - 1] : null,
+    hasMore,
+  };
+}
+
+export async function getOrdersCount(boutiqueId: string): Promise<number> {
+  const q = query(ordersCol(boutiqueId), where('isDeleted', '==', false));
+  const snap = await getCountFromServer(q);
+  return snap.data().count;
 }
 
 export async function getOrder(boutiqueId: string, orderId: string): Promise<Order | null> {

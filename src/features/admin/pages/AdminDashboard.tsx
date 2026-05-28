@@ -74,20 +74,20 @@ export default function AdminDashboard() {
       {/* Boutique stats */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={6} sm={3}>
-          <StatCard icon={<StorefrontIcon />} title="Total Boutiques" value={boutiques.length} color="#7B5EA7" />
+          <StatCard icon={<StorefrontIcon style={{display: 'flex'}}/>} title="Total Boutiques" value={boutiques.length} color="#7B5EA7" />
         </Grid>
         <Grid item xs={6} sm={3}>
-          <StatCard icon={<CheckCircleIcon />} title="Active" value={active} color="#2E7D32" />
+          <StatCard icon={<CheckCircleIcon style={{display: 'flex'}} />} title="Active" value={active} color="#2E7D32" />
         </Grid>
         <Grid item xs={6} sm={3}>
-          <StatCard icon={<CancelIcon />} title="Inactive" value={inactive} color="#D32F2F" />
+          <StatCard icon={<CancelIcon style={{display: 'flex'}} />} title="Inactive" value={inactive} color="#D32F2F" />
         </Grid>
         <Grid item xs={6} sm={3}>
-          <StatCard icon={<CardMembershipIcon />} title="Active Plans" value={activePlans} color="#4A6FD4" />
+          <StatCard icon={<CardMembershipIcon style={{display: 'flex'}}/>} title="Active Plans" value={activePlans} color="#4A6FD4" />
         </Grid>
         {expiredPlans > 0 && (
           <Grid item xs={6} sm={3}>
-            <StatCard icon={<EventBusyIcon />} title="Expired Plans" value={expiredPlans} color="#E65100" />
+            <StatCard icon={<EventBusyIcon style={{display: 'flex'}} />} title="Expired Plans" value={expiredPlans} color="#E65100" />
           </Grid>
         )}
       </Grid>
@@ -111,17 +111,17 @@ export default function AdminDashboard() {
         <Grid item xs={12} sm={4}>
           {paymentsLoading
             ? <Skeleton variant="rounded" height={72} />
-            : <StatCard icon={<CurrencyRupeeIcon />} title="Total Revenue" value={fmt(totalRevenue)} color="#1B7A4B" sub="all time" />}
+            : <StatCard icon={<CurrencyRupeeIcon style={{display: 'flex'}}/>} title="Total Revenue" value={fmt(totalRevenue)} color="#1B7A4B" sub="all time" />}
         </Grid>
         <Grid item xs={6} sm={4}>
           {paymentsLoading
             ? <Skeleton variant="rounded" height={72} />
-            : <StatCard icon={<TrendingUpIcon />} title="This Month" value={fmt(thisMonthRev)} color="#7B5EA7" sub={format(now, 'MMMM yyyy')} />}
+            : <StatCard icon={<TrendingUpIcon style={{display: 'flex'}} />} title="This Month" value={fmt(thisMonthRev)} color="#7B5EA7" sub={format(now, 'MMMM yyyy')} />}
         </Grid>
         <Grid item xs={6} sm={4}>
           {paymentsLoading
             ? <Skeleton variant="rounded" height={72} />
-            : <StatCard icon={<TrendingUpIcon />} title="Last Month" value={fmt(lastMonthRev)} color="#4A6FD4" sub={format(subMonths(now, 1), 'MMMM yyyy')} />}
+            : <StatCard icon={<TrendingUpIcon style={{display: 'flex'}} />} title="Last Month" value={fmt(lastMonthRev)} color="#4A6FD4" sub={format(subMonths(now, 1), 'MMMM yyyy')} />}
         </Grid>
       </Grid>
 

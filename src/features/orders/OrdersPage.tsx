@@ -4,7 +4,10 @@ import AddIcon from '@mui/icons-material/Add';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import { subDays, startOfDay, endOfDay } from 'date-fns';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useOrders } from './hooks/useOrders';
+import { useOrdersPage } from './hooks/useOrdersPage';
+import { getOrders, getOrder } from '@/services/orders';
 import OrderCard from './components/OrderCard';
 import OrderDetailDrawer from './components/OrderDetailDrawer';
 import OrdersFilterSheet, { OrderFilters } from './components/OrdersFilterSheet';
@@ -37,13 +40,28 @@ function DotsLoader() {
 export default function OrdersPage() {
   const { T } = useAppTheme();
   const user = useAuthStore((s) => s.user);
-  const { query, statusMutation, deleteMutation } = useOrders();
-  const orders = query.data || [];
+  const boutiqueId = user?.boutiqueId || '';
+  const { statusMutation, deleteMutation } = useOrders();
+  const { orders: pagedOrders, isLoading: pageLoading, isFetching, page, hasMore, totalCount, totalPages, goNext, goPrev, resetPage, queryData } = useOrdersPage();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [search, setSearch] = useState('');
+  const isSearching = search.trim().length > 0;
+
+  // Full dataset — only fetched when search is active
+  const searchQuery = useQuery({
+    queryKey: ['orders-all', boutiqueId],
+    queryFn: () => getOrders(boutiqueId),
+    enabled: isSearching && !!boutiqueId,
+    staleTime: 5 * 60_000,
+  });
+
+  // Use full list when searching, paginated list otherwise
+  const orders = isSearching ? (searchQuery.data ?? []) : pagedOrders;
+  const isLoading = isSearching ? searchQuery.isLoading : pageLoading;
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -55,23 +73,30 @@ export default function OrdersPage() {
     if (newOrderOpen) { navigate('/dashboard/new'); setNewOrderOpen(false); }
   }, [newOrderOpen, setNewOrderOpen, navigate]);
 
-  // Auto-open drawer when navigated here with a specific order id (e.g. from Customers page)
+  // Auto-open drawer when navigated here with a specific order id (e.g. from Customers page).
+  // Fetches the order directly so it works regardless of which page is currently loaded.
   useEffect(() => {
     const openOrderId = (location.state as { openOrderId?: string } | null)?.openOrderId;
-    if (!openOrderId || !query.data) return;
-    const order = query.data.find((o) => o.id === openOrderId);
-    if (order) { setSelectedOrder(order); setDetailOpen(true); }
-    // Clear the state so back-navigation doesn't re-open
+    if (!openOrderId) return;
     navigate(location.pathname, { replace: true, state: {} });
-  }, [location.state, query.data]); // eslint-disable-line react-hooks/exhaustive-deps
+    const inPage = queryData?.orders.find((o) => o.id === openOrderId);
+    if (inPage) {
+      setSelectedOrder(inPage);
+      setDetailOpen(true);
+    } else {
+      getOrder(boutiqueId, openOrderId).then((order) => {
+        if (order) { setSelectedOrder(order); setDetailOpen(true); }
+      });
+    }
+  }, [location.state]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep selectedOrder in sync when query re-fetches (e.g. after payment added)
+  // Keep selectedOrder in sync when the page re-fetches (e.g. after payment added)
   useEffect(() => {
-    if (selectedOrder && query.data) {
-      const updated = query.data.find((o) => o.id === selectedOrder.id);
+    if (selectedOrder && queryData) {
+      const updated = queryData.orders.find((o) => o.id === selectedOrder.id);
       if (updated) setSelectedOrder(updated);
     }
-  }, [query.data]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [queryData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Read filters from URL params
   const datePreset    = searchParams.get('date')       || 'all';
@@ -81,6 +106,11 @@ export default function OrdersPage() {
   const balanceDue    = searchParams.get('balance')    === '1';
   const activeCount   = (datePreset !== 'all' ? 1 : 0) + (statusFilter !== 'all' ? 1 : 0) + (balanceDue ? 1 : 0);
   const hasFilters    = activeCount > 0;
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    resetPage();
+  }, [datePreset, dateFrom, dateTo, statusFilter, balanceDue]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const filtered = useMemo(() => {
     let list = orders;
@@ -93,7 +123,7 @@ export default function OrdersPage() {
     if (balanceDue) list = list.filter((o) => o.balanceAmount > 0);
     if (search.trim()) {
       const s = search.toLowerCase();
-      list = list.filter((o) => o.customerName.toLowerCase().includes(s) || o.customerPhone?.includes(s));
+      list = list.filter((o) => o.customerName.toLowerCase().includes(s) || o.memberName?.toLowerCase().includes(s) || o.customerPhone?.includes(s));
     }
     return list;
   }, [orders, datePreset, dateFrom, dateTo, statusFilter, balanceDue, search]);
@@ -134,11 +164,33 @@ export default function OrdersPage() {
     balanceDue,
   };
 
+  const paginationVisible = !isSearching && (page > 1 || hasMore);
+
+  const paginationBtnStyle = (disabled: boolean): React.CSSProperties => ({
+    display: 'flex', alignItems: 'center', gap: 5,
+    padding: '8px 18px', borderRadius: T.r.md,
+    border: `1.5px solid ${disabled ? T.border : T.violet.d}`,
+    background: disabled ? 'transparent' : `${T.violet.d}12`,
+    color: disabled ? T.muted : T.violet.d,
+    fontSize: 13, fontWeight: 600, fontFamily: T.fontBody,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.5 : 1,
+    transition: 'all .15s',
+  });
+
   return (
     <Box>
       <PageHeader
         title="Orders"
-        subtitle={`${orders.length} total`}
+        subtitle={
+          isSearching
+            ? `${filtered.length} result${filtered.length !== 1 ? 's' : ''} found`
+            : hasFilters
+              ? `${filtered.length} on this page · ${totalCount ?? '…'} total`
+              : totalCount !== null
+                ? `${totalCount.toLocaleString('en-IN')} orders total`
+                : 'Loading…'
+        }
         actionLabel={isStaff || isReadOnly ? undefined : 'New Order'}
         onAction={isStaff || isReadOnly ? undefined : () => navigate('/dashboard/new')}
       />
@@ -196,7 +248,7 @@ export default function OrdersPage() {
       </div>
 
       {/* ── Order list ── */}
-      {query.isLoading ? (
+      {isLoading ? (
         <DotsLoader />
       ) : filtered.length === 0 ? (
         <EmptyState
@@ -220,6 +272,36 @@ export default function OrdersPage() {
             </Grid>
           ))}
         </Grid>
+      )}
+
+      {/* ── Pagination controls ── */}
+      {paginationVisible && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, marginTop: 28, paddingBottom: 8 }}>
+          {/* Showing X–Y of N */}
+          {totalCount !== null && (
+            <span style={{ fontSize: 12, color: T.muted, fontFamily: T.fontBody }}>
+              {isFetching ? 'Loading…' : (() => {
+                const from = (page - 1) * 25 + 1;
+                const to = Math.min(page * 25, totalCount);
+                return `Showing ${from.toLocaleString('en-IN')}–${to.toLocaleString('en-IN')} of ${totalCount.toLocaleString('en-IN')} orders`;
+              })()}
+            </span>
+          )}
+          {/* Prev · Page X of Y · Next */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button onClick={goPrev} disabled={page <= 1 || isFetching} style={paginationBtnStyle(page <= 1 || isFetching)}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+              Prev
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 600, color: T.text2, fontFamily: T.fontBody, minWidth: 80, textAlign: 'center' }}>
+              {isFetching ? '…' : totalPages ? `Page ${page} of ${totalPages}` : `Page ${page}`}
+            </span>
+            <button onClick={goNext} disabled={!hasMore || isFetching} style={paginationBtnStyle(!hasMore || isFetching)}>
+              Next
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          </div>
+        </div>
       )}
 
       {!isStaff && !isReadOnly && (

@@ -1,4 +1,4 @@
-# Boutique Ecosystem
+# Boutiqo
 
 Multi-tenant SaaS platform for boutique management. A super admin controls the platform, creates boutiques, and manages subscriptions. Each boutique owner and their staff log in with phone OTP and get isolated access to their own data.
 

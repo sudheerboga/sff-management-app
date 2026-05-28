@@ -13,6 +13,7 @@ import {
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
 import { StaffMember, StaffInvite } from '@/types';
+import { createPhoneUser } from '@/services/auth';
 
 function fromFirestore(data: Record<string, unknown>): StaffMember {
   return {
@@ -41,11 +42,15 @@ export async function inviteStaff(boutiqueId: string, data: {
   role: 'admin' | 'staff';
   invitedBy: string;
 }): Promise<void> {
-  await setDoc(doc(db, COLLECTIONS.STAFF_INVITES, data.phone), {
-    phone: data.phone,
+  const uid = await createPhoneUser(data.phone);
+  await setDoc(doc(db, COLLECTIONS.BOUTIQUE_USERS, uid), {
+    uid,
     boutiqueId,
     name: data.name,
+    phone: data.phone,
     role: data.role,
+    isActive: true,
+    mustResetPassword: true,
     invitedBy: data.invitedBy,
     createdAt: serverTimestamp(),
   });

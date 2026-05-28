@@ -42,7 +42,7 @@ export default function AdminLayout() {
           <AdminPanelSettingsIcon sx={{ fontSize: 20 }} />
           <Typography fontFamily="'Playfair Display', serif" fontWeight={700} variant="subtitle1">Super Admin</Typography>
         </Box>
-        <Typography variant="caption" sx={{ opacity: 0.8 }}>Boutique Ecosystem</Typography>
+        <Typography variant="caption" sx={{ opacity: 0.8 }}>Boutiqo</Typography>
       </Box>
       <Divider />
       <List sx={{ flex: 1, px: 0.5, py: 1 }}>

@@ -1,6 +1,6 @@
 import {
   Dialog, DialogTitle, DialogContent, DialogActions, Button,
-  TextField, Box, Typography, CircularProgress,
+  TextField, Box, Typography, CircularProgress, InputAdornment,
 } from '@mui/material';
 import { useForm, Controller } from 'react-hook-form';
 
@@ -25,7 +25,7 @@ interface Props {
 
 export default function CreateBoutiqueModal({ open, onClose, onSubmit, loading }: Props) {
   const { control, handleSubmit, reset, formState: { errors } } = useForm<FormValues>({
-    defaultValues: { name: '', ownerName: '', ownerPhone: '+91', ownerEmail: '', address: '', gstin: '', cloudName: '', uploadPreset: '', cloudFolder: '' },
+    defaultValues: { name: '', ownerName: '', ownerPhone: '', ownerEmail: '', address: '', gstin: '', cloudName: '', uploadPreset: '', cloudFolder: '' },
   });
 
   const handleClose = () => { reset(); onClose(); };
@@ -50,9 +50,22 @@ export default function CreateBoutiqueModal({ open, onClose, onSubmit, loading }
               render={({ field }) => (
                 <TextField {...field} label="Owner Name" fullWidth required error={!!errors.ownerName} helperText={errors.ownerName?.message} />
               )} />
-            <Controller name="ownerPhone" control={control} rules={{ required: 'Phone required' }}
+            <Controller name="ownerPhone" control={control} rules={{
+                required: 'Phone required',
+                validate: (v) => /^\d{10}$/.test(v.replace(/\D/g, '')) || '10-digit number required',
+              }}
               render={({ field }) => (
-                <TextField {...field} label="Owner Phone" sx={{ width: 160, flexShrink: 0 }} required error={!!errors.ownerPhone} helperText={errors.ownerPhone?.message} />
+                <TextField
+                  {...field}
+                  label="Owner Phone"
+                  sx={{ width: 180, flexShrink: 0 }}
+                  required
+                  inputMode="numeric"
+                  onChange={(e) => field.onChange(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                  error={!!errors.ownerPhone}
+                  helperText={errors.ownerPhone?.message}
+                  InputProps={{ startAdornment: <InputAdornment position="start">+91</InputAdornment> }}
+                />
               )} />
           </Box>
           <Controller name="ownerEmail" control={control}

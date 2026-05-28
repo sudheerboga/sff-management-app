@@ -1,9 +1,7 @@
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
-
-
 
 const firebaseConfig = {
   apiKey: "AIzaSyBPPQizMEd5sPVAONpcDVDG5gu94vM6nOw",
@@ -17,7 +15,11 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Secondary app used only to create new user accounts without signing out the current admin
+const secondaryApp = getApps().find((a) => a.name === 'secondary') ?? initializeApp(firebaseConfig, 'secondary');
+
 export const db = getFirestore(app);
 export const auth = getAuth(app);
+export const secondaryAuth = getAuth(secondaryApp);
 export const storage = getStorage(app);
 export default app;

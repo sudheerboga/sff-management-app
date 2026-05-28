@@ -97,7 +97,7 @@ export default function Sidebar({ open, variant, width, onClose }: Props) {
             <>
               <StorefrontIcon sx={{ fontSize: 20 }} />
               <Typography variant="subtitle1" fontFamily="'Playfair Display', serif" fontWeight={700}>
-                Boutique Ecosystem
+                Boutiqo
               </Typography>
             </>
           )}
@@ -150,7 +150,7 @@ export default function Sidebar({ open, variant, width, onClose }: Props) {
       <Divider />
       <Box sx={{ p: 2 }}>
         <Typography variant="caption" color="text.disabled">
-          v1.0.0 · Boutique Ecosystem
+          v1.0.0 · Boutiqo
         </Typography>
       </Box>
     </Box>

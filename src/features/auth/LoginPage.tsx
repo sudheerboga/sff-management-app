@@ -1,112 +1,59 @@
-import { useState, useRef, useEffect } from 'react';
-import { ConfirmationResult } from 'firebase/auth';
-import { sendPhoneOtp, signInAdmin } from '@/services/auth';
+import { useState } from 'react';
+import { signInWithPhone } from '@/services/auth';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
-const RESEND_SECONDS = 30;
-
-const tabSp = { viewBox: '0 0 20 20', width: 16, height: 16, fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
-
-const PHONE_ICON = (
-  <svg {...tabSp}>
-    {/* phone body */}
-    <rect x="5.5" y="1.5" width="9" height="17" rx="2.2" />
-    {/* speaker + camera row */}
-    <path d="M8.5 3.2 L11 3.2" strokeWidth={1.2} />
-    <circle cx="12.5" cy="3.2" r="0.6" fill="currentColor" stroke="none" />
-    {/* screen bounds */}
-    <path d="M5.5 5 L14.5 5" strokeWidth={0.8} />
-    <path d="M5.5 15.5 L14.5 15.5" strokeWidth={0.8} />
-    {/* screen content lines */}
-    <path d="M8 7.5 L12 7.5 M8 9.5 L12 9.5 M8 11.5 L10.5 11.5" strokeWidth={0.75} />
-    {/* home indicator bar */}
-    <path d="M8.5 17 L11.5 17" strokeWidth={1.6} />
+const EyeIcon = ({ open }: { open: boolean }) => open ? (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
+    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
+    <line x1="1" y1="1" x2="23" y2="23"/>
+  </svg>
+) : (
+  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+    <circle cx="12" cy="12" r="3"/>
   </svg>
 );
 
-const ADMIN_ICON = (
-  <svg {...tabSp}>
-    {/* shackle */}
-    <path d="M7 8.5 L7 5.5 Q7 2.5 10 2.5 Q13 2.5 13 5.5 L13 8.5" />
-    {/* lock body */}
-    <rect x="4" y="8.5" width="12" height="9" rx="2.2" />
-    {/* keyhole circle */}
-    <circle cx="10" cy="13" r="1.6" />
-    {/* keyhole drop */}
-    <path d="M10 14.6 L10 16.5" strokeWidth={1.8} />
-  </svg>
-);
+function friendlyError(code: string): string {
+  if (code.includes('invalid-credential') || code.includes('wrong-password')) return 'Incorrect password.';
+  if (code.includes('user-not-found')) return 'Phone number not registered.';
+  if (code.includes('too-many-requests')) return 'Too many attempts. Try again later.';
+  return 'Sign in failed. Please try again.';
+}
 
 export default function LoginPage() {
   const { T } = useAppTheme();
   const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 
-  const [tab,      setTab]      = useState<'phone' | 'admin'>('phone');
-  const [phone,    setPhone]    = useState('');
-  const [otp,      setOtp]      = useState('');
-  const [otpSent,  setOtpSent]  = useState(false);
-  const [resendIn, setResendIn] = useState(0);
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState('');
-  const [focused,  setFocused]  = useState('');
-  const [showPwd,  setShowPwd]  = useState(false);
-  const confirmationRef = useRef<ConfirmationResult | null>(null);
-  const otpRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
+  const [phone,   setPhone]   = useState('');
+  const [pwd,     setPwd]     = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+  const [focused, setFocused] = useState('');
+  const [showPwd, setShowPwd] = useState(false);
 
   if (user) {
     if (user.role === 'superAdmin') navigate('/admin', { replace: true });
     else navigate('/dashboard', { replace: true });
   }
 
-  useEffect(() => {
-    if (resendIn <= 0) return;
-    const id = setInterval(() => setResendIn((s) => s - 1), 1000);
-    return () => clearInterval(id);
-  }, [resendIn]);
-
-  const handleSendOtp = async () => {
-    const formatted = `+91${phone.trim()}`;
-    if (!/^\+91\d{10}$/.test(formatted)) { setError('Enter a valid 10-digit number'); return; }
+  const handleLogin = async () => {
+    if (phone.length !== 10) { setError('Enter a valid 10-digit number'); return; }
+    if (!pwd) { setError('Enter your password'); return; }
     setLoading(true); setError('');
     try {
-      confirmationRef.current = await sendPhoneOtp(formatted, 'recaptcha-container');
-      setOtpSent(true);
-      setResendIn(RESEND_SECONDS);
+      await signInWithPhone(phone, pwd);
+      // stay in loading state — auth listener will navigate away
     } catch (e: unknown) {
-      setError((e as Error).message || 'Failed to send OTP');
-    } finally { setLoading(false); }
+      const code = (e as { code?: string }).code ?? '';
+      setError(friendlyError(code));
+      setLoading(false);
+    }
   };
-
-  const handleVerifyOtp = async () => {
-    if (!otp || otp.length < 6) { setError('Enter the 6-digit code'); return; }
-    setLoading(true); setError('');
-    try {
-      await confirmationRef.current!.confirm(otp);
-      // navigation handled by auth state listener
-    } catch {
-      setError('Incorrect code. Try again.');
-    } finally { setLoading(false); }
-  };
-
-  const handleAdminLogin = async () => {
-    if (!email || !password) { setError('Enter email and password'); return; }
-    setLoading(true); setError('');
-    try {
-      await signInAdmin(email, password);
-      navigate('/admin', { replace: true });
-    } catch {
-      setError('Incorrect email or password.');
-    } finally { setLoading(false); }
-  };
-
-  function switchTab(t: 'phone' | 'admin') {
-    setTab(t); setError(''); setOtpSent(false); setOtp('');
-  }
 
   function inp(id: string): React.CSSProperties {
     const f = focused === id;
@@ -124,19 +71,6 @@ export default function LoginPage() {
     };
   }
 
-  const btnStyle = (disabled: boolean): React.CSSProperties => ({
-    width: '100%', padding: '15px 0',
-    background: disabled ? (T.isDark ? 'rgba(255,255,255,0.06)' : T.bg2) : T.grad.brand,
-    color: disabled ? T.muted : '#fff',
-    border: 'none', borderRadius: T.r.md,
-    fontSize: 15, fontWeight: 700, letterSpacing: '.02em',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    fontFamily: T.fontBody,
-    boxShadow: disabled ? 'none' : T.sh.brand,
-    transition: 'all .2s',
-    opacity: disabled ? .7 : 1,
-  });
-
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: T.bg, fontFamily: T.fontBody, padding: '24px 20px' }}>
       <style>{`
@@ -147,232 +81,120 @@ export default function LoginPage() {
           -webkit-text-fill-color: ${T.text} !important;
           transition: background-color 5000s ease-in-out 0s;
         }
+        @keyframes needleBob {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-5px); }
+        }
+        @keyframes stitchPop {
+          0%, 60%, 100% { opacity: 0.25; transform: scaleX(0.5); }
+          30%            { opacity: 1;    transform: scaleX(1); }
+        }
       `}</style>
-      <div id="recaptcha-container" />
 
       <div style={{ width: '100%', maxWidth: 380 }}>
 
-        {/* ── Brand ── */}
+        {/* Brand */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <div style={{ fontSize: 46, fontFamily: T.fontDisplay, fontWeight: 700, background: T.grad.brand, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', lineHeight: 1.1, letterSpacing: '-.02em' }}>
-            Boutique
-          </div>
-          <div style={{ fontSize: 11, color: T.muted, letterSpacing: '.18em', textTransform: 'uppercase', marginTop: 6 }}>
-            Ecosystem
+            Boutiqo
           </div>
         </div>
 
-        {/* ── Tab pills ── */}
-        <div style={{ display: 'flex', gap: 0, marginBottom: 28, background: T.isDark ? 'rgba(255,255,255,0.05)' : T.bg2, borderRadius: T.r.lg, padding: 4 }}>
-          {(['phone', 'admin'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => switchTab(t)}
-              style={{
-                flex: 1, padding: '10px 0', border: 'none', cursor: 'pointer',
-                borderRadius: T.r.md, fontFamily: T.fontBody,
-                fontSize: 14, fontWeight: tab === t ? 700 : 500,
-                background: tab === t ? (T.isDark ? T.card : '#fff') : 'transparent',
-                color: tab === t ? T.text : T.muted,
-                boxShadow: tab === t ? 'rgb(26 22 37 / 17%) 0px 1px 4px' : 'none',
-                transition: 'all .2s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                {t === 'phone' ? <div style={{ color: '#7B5EA7', paddingTop: '4px'}}>{PHONE_ICON}</div> : <div style={{ color: '#7B5EA7', paddingTop: '4px'}}>{ADMIN_ICON}</div>}
-                {t === 'phone' ? 'Phone Login' : 'Admin Login'}
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {/* ── Error ── */}
+        {/* Error */}
         {error && (
           <div style={{ background: T.danger.bg, border: `1px solid ${T.danger.border}`, borderRadius: T.r.md, padding: '11px 14px', marginBottom: 16, fontSize: 13, color: T.danger.text }}>
             {error}
           </div>
         )}
 
-        {/* ── Phone tab ── */}
-        {tab === 'phone' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-
-            {/* Country code + phone */}
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', padding: '0 14px', border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: T.inputBg, fontSize: 14, fontWeight: 600, color: T.text2, whiteSpace: 'nowrap', flexShrink: 0, gap: 6 }}>
-                🇮🇳 <span>+91</span>
-              </div>
-              <input
-                type="tel"
-                inputMode="numeric"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                placeholder="Phone number"
-                disabled={otpSent}
-                onKeyDown={(e) => !otpSent && e.key === 'Enter' && handleSendOtp()}
-                onFocus={() => setFocused('phone')}
-                onBlur={() => setFocused('')}
-                style={{ ...inp('phone'), opacity: otpSent ? .55 : 1 }}
-              />
+        {/* Form */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', padding: '0 14px', border: `1.5px solid ${T.border}`, borderRadius: T.r.md, background: T.inputBg, fontSize: 14, fontWeight: 600, color: T.text2, whiteSpace: 'nowrap', flexShrink: 0, gap: 6 }}>
+              🇮🇳 <span>+91</span>
             </div>
-
-            {/* OTP boxes (shown after send) */}
-            {otpSent && (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <span style={{ fontSize: 12, color: T.muted }}>Code sent to +91 {phone}</span>
-                  {resendIn > 0
-                    ? <span style={{ fontSize: 12, color: T.muted }}>Resend in {resendIn}s</span>
-                    : <button onClick={handleSendOtp} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: T.violet.d, fontFamily: T.fontBody, padding: 0 }}>Resend</button>
-                  }
-                </div>
-                <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
-                  {Array.from({ length: 6 }).map((_, i) => {
-                    const isFoc = focused === `otp-${i}`;
-                    const filled = !!otp[i];
-                    return (
-                      <input
-                        key={i}
-                        ref={(el) => { otpRefs.current[i] = el; }}
-                        autoFocus={i === 0}
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={1}
-                        value={otp[i] || ''}
-                        onChange={(e) => {
-                          const digit = e.target.value.replace(/\D/g, '').slice(-1);
-                          const next = otp.split('');
-                          next[i] = digit;
-                          const updated = next.join('').slice(0, 6);
-                          setOtp(updated);
-                          if (digit && i < 5) otpRefs.current[i + 1]?.focus();
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Backspace') {
-                            if (otp[i]) {
-                              const next = otp.split('');
-                              next[i] = '';
-                              setOtp(next.join(''));
-                            } else if (i > 0) {
-                              otpRefs.current[i - 1]?.focus();
-                            }
-                          }
-                          if (e.key === 'Enter' && otp.length === 6) handleVerifyOtp();
-                        }}
-                        onPaste={(e) => {
-                          const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-                          if (pasted) {
-                            setOtp(pasted);
-                            otpRefs.current[Math.min(pasted.length, 5)]?.focus();
-                          }
-                          e.preventDefault();
-                        }}
-                        onFocus={() => setFocused(`otp-${i}`)}
-                        onBlur={() => setFocused('')}
-                        style={{
-                          width: 46, height: 54,
-                          textAlign: 'center',
-                          fontSize: 22, fontWeight: 700,
-                          fontFamily: T.fontBody,
-                          color: filled ? T.violet.d : T.text,
-                          background: isFoc ? T.inputFocusBg : T.inputBg,
-                          border: `1.5px solid ${isFoc ? T.violet.d : filled ? `${T.violet.d}66` : T.border}`,
-                          borderRadius: T.r.md,
-                          outline: 'none',
-                          boxShadow: isFoc ? `0 0 0 3px ${T.isDark ? 'rgba(155,127,212,0.18)' : 'rgba(123,94,167,0.12)'}` : 'none',
-                          transition: 'border-color .18s, box-shadow .18s, background .18s',
-                          caretColor: 'transparent',
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <button
-              onClick={otpSent ? handleVerifyOtp : handleSendOtp}
-              disabled={loading || (otpSent && otp.length < 6)}
-              style={{ ...btnStyle(loading || (otpSent && otp.length < 6)), marginTop: 4 }}
-            >
-              {loading ? 'Please wait…' : otpSent ? 'Verify & Sign In' : 'Send OTP'}
-            </button>
-
-            {otpSent && (
-              <button
-                onClick={() => { setOtpSent(false); setOtp(''); setError(''); }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: T.muted, fontFamily: T.fontBody, padding: '2px 0', textAlign: 'center' }}
-              >
-                ← Change number
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── Admin tab ── */}
-        {tab === 'admin' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Admin email"
-              onFocus={() => setFocused('email')}
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+              placeholder="Phone number"
+              onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pwd-input')?.focus()}
+              onFocus={() => setFocused('phone')}
               onBlur={() => setFocused('')}
-              style={inp('email')}
+              style={inp('phone')}
             />
-            <div style={{ position: 'relative' }}>
-              <input
-                type={showPwd ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                onKeyDown={(e) => e.key === 'Enter' && handleAdminLogin()}
-                onFocus={() => setFocused('password')}
-                onBlur={() => setFocused('')}
-                style={{
-                  ...inp('password'),
-                  paddingRight: 44,
-                  fontSize: 15,
-                  letterSpacing: !showPwd && password ? '0.15em' : 'normal',
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd((v) => !v)}
-                style={{
-                  position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)',
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: T.muted, padding: 4, display: 'flex', alignItems: 'center',
-                }}
-              >
-                {showPwd ? (
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-                    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                )}
-              </button>
-            </div>
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <input
+              id="pwd-input"
+              type={showPwd ? 'text' : 'password'}
+              value={pwd}
+              onChange={(e) => setPwd(e.target.value)}
+              placeholder="Password"
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              onFocus={() => setFocused('pwd')}
+              onBlur={() => setFocused('')}
+              style={{
+                ...inp('pwd'),
+                paddingRight: 44,
+                letterSpacing: !showPwd && pwd ? '0.15em' : 'normal',
+              }}
+            />
             <button
-              onClick={handleAdminLogin}
-              disabled={loading}
-              style={{ ...btnStyle(loading), marginTop: 4 }}
+              type="button"
+              onClick={() => setShowPwd((v) => !v)}
+              style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: T.muted, padding: 4, display: 'flex', alignItems: 'center' }}
             >
-              {loading ? 'Signing in…' : 'Sign In'}
+              <EyeIcon open={showPwd} />
             </button>
           </div>
-        )}
 
-        {/* ── Footer ── */}
+          <button
+            onClick={handleLogin}
+            disabled={loading}
+            style={{
+              width: '100%', height: 52, marginTop: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              overflow: 'hidden',
+              background: loading ? (T.isDark ? '#c5c5c53d' : '#c5c5c53d') : T.grad.brand,
+              color: loading ? 'rgb(123, 94, 167)' : '#fff',
+              border: 'none', borderRadius: T.r.md,
+              fontSize: 15, fontWeight: 700, letterSpacing: '.02em',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              fontFamily: T.fontBody,
+              boxShadow: loading ? 'none' : T.sh.brand,
+              transition: 'background .2s, box-shadow .2s, color .2s',
+            }}
+          >
+            {loading ? (
+              <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+                {/* bobbing needle */}
+                <svg width="12" height="15" viewBox="0 0 12 22" fill="none"
+                  style={{ animation: 'needleBob 0.65s ease-in-out infinite', flexShrink: 0 }}>
+                  <path d="M6 0.5 C7.4 0.5 8.5 1.7 8.5 3.3 L7.2 16.5 L6 21.5 L4.8 16.5 L3.5 3.3 C3.5 1.7 4.6 0.5 6 0.5Z" fill={'rgb(123, 94, 167)'} />
+                  <ellipse cx="6" cy="4.2" rx="2.1" ry="1.4" fill="none" stroke={'rgb(123, 94, 167)'} strokeWidth="1.3" opacity="0.5"/>
+                </svg>
+                <span>Signing in</span>
+                {/* running-stitch dashes */}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <span key={i} style={{
+                      display: 'inline-block', width: 7, height: 2,
+                      background: 'rgb(123, 94, 167)', borderRadius: 2,
+                      animation: `stitchPop 1.1s ease-in-out ${i * 0.18}s infinite`,
+                    }} />
+                  ))}
+                </span>
+              </span>
+            ) : 'Sign In'}
+          </button>
+        </div>
+
+        {/* Footer */}
         <div style={{ textAlign: 'center', marginTop: 40, fontSize: 11, color: T.muted, letterSpacing: '.05em' }}>
-          Boutique Ecosystem · v1.0
+          Boutiqo · v1.0
         </div>
 
       </div>

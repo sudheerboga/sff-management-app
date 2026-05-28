@@ -27,6 +27,7 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
   const [showAddMember, setShowAddMember] = useState(false);
   const [newMemberName, setNewMemberName] = useState('');
   const [newMemberNameFocused, setNewMemberNameFocused] = useState(false);
+  const [localMembers, setLocalMembers] = useState<CustomerMember[]>([]);
   const didAutoSelect = useRef(false);
 
   const cleanPhone = phoneInput.replace(/\D/g, '').slice(-10);
@@ -35,6 +36,11 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
     () => (cleanPhone.length >= 10 ? customers.find((c) => c.phone === cleanPhone) ?? null : null),
     [cleanPhone, customers],
   );
+
+  // Clear local (unsaved) members whenever the matched customer changes
+  useEffect(() => {
+    setLocalMembers([]);
+  }, [matchedCustomer?.id]);
 
   // When a customer is matched, auto-populate; when unmatched reset
   useEffect(() => {
@@ -85,7 +91,12 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
     setShowAddMember(false);
   }
 
-  const isDuplicateMember = !!matchedCustomer && matchedCustomer.members.some(
+  // Firestore members + any members added this session (before save)
+  const allMembers = matchedCustomer
+    ? [...matchedCustomer.members, ...localMembers]
+    : [];
+
+  const isDuplicateMember = allMembers.some(
     (m) => m.name.toLowerCase() === newMemberName.trim().toLowerCase(),
   );
 
@@ -96,14 +107,14 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
       name: newMemberName.trim(),
       relation: 'other',
     };
-    // Optimistically update the picker value; caller should persist via addMemberMutation
+    setLocalMembers((prev) => [...prev, member]);
     onChange({
       customerId: matchedCustomer.id,
       customerName: matchedCustomer.name,
       customerPhone: cleanPhone,
       memberName: member.name,
       memberId: member.id,
-      _newMember: member,     // signal to parent to persist
+      _newMember: member,
     } as CustomerPickResult & { _newMember: CustomerMember });
     setShowAddMember(false);
     setNewMemberName('');
@@ -191,7 +202,7 @@ export default function CustomerMemberPicker({ value, onChange, customers, error
             <>
               <label style={{ ...labelStyle(false), marginBottom: 8 }}>Who is this for?</label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                {matchedCustomer.members.map((m) => {
+                {allMembers.map((m) => {
                   const active   = value.memberId === m.id;
                   const disabled = disabledMemberIds?.has(m.id) ?? false;
                   return (

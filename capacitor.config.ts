@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.srifashion.app',
-  appName: 'Boutique Ecosystem',
+  appId: 'com.boutiqo.app',
+  appName: 'Boutiqo',
   webDir: 'build'
 };
 

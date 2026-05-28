@@ -111,7 +111,7 @@ export default function LoadingScreen() {
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
           }}>
-            Boutique Ecosystem
+            Boutiqo
           </span>
         </div>
 

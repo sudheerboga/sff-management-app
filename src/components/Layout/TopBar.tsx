@@ -67,7 +67,7 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
             flex: 1,
           }}
         >
-          {title || user?.boutiqueName || 'Boutique Ecosystem'}
+          {title || user?.boutiqueName || 'Boutiqo'}
         </Typography>
 
         {/* <Tooltip title={themeMode === 'dark' ? 'Light mode' : 'Dark mode'}>
@@ -107,10 +107,10 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
           </Typography>
         </Box>
         <Divider />
-        <MenuItem onClick={() => { setAnchorEl(null); }} dense>
+        {/* <MenuItem onClick={() => { setAnchorEl(null); }} dense>
           <ListItemIcon><PersonIcon fontSize="small" /></ListItemIcon>
           Profile
-        </MenuItem>
+        </MenuItem> */}
         <MenuItem onClick={handleLogout} dense sx={{ color: 'error.main' }}>
           <ListItemIcon><LogoutIcon fontSize="small" color="error" /></ListItemIcon>
           Sign out

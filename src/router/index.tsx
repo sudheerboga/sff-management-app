@@ -7,6 +7,7 @@ import AdminLayout from '@/features/admin/AdminLayout';
 
 const SplashPage = lazy(() => import('@/features/auth/SplashPage'));
 const LoginPage = lazy(() => import('@/features/auth/LoginPage'));
+const ResetPasswordPage = lazy(() => import('@/features/auth/ResetPasswordPage'));
 const OrdersPage = lazy(() => import('@/features/orders/OrdersPage'));
 const OrderFormPage    = lazy(() => import('@/features/orders/OrderFormPage'));
 const MeasurementsPage = lazy(() => import('@/features/measurements/MeasurementsPage'));
@@ -22,12 +23,14 @@ const BoutiquesPage = lazy(() => import('@/features/admin/pages/BoutiquesPage'))
 const DeletedRecordsPage = lazy(() => import('@/features/admin/pages/DeletedRecordsPage'));
 const BoutiqueDetailPage = lazy(() => import('@/features/admin/pages/BoutiqueDetailPage'));
 const SubscriptionsPage = lazy(() => import('@/features/admin/pages/SubscriptionsPage'));
+const SeedPage = lazy(() => import('@/dev/SeedPage'));
 
 // App.tsx gates the router until auth is initialized, so loading is always false here.
 
 function BoutiqueGuard() {
   const user = useAuthStore((s) => s.user);
   if (!user || !['admin', 'staff'].includes(user.role)) return <Navigate to="/login" replace />;
+  if (user.mustResetPassword) return <Navigate to="/reset-password" replace />;
   return <Outlet />;
 }
 
@@ -58,6 +61,7 @@ export const router = createBrowserRouter([
   { path: '/', element: <RootRedirect /> },
   { path: '/splash', element: wrap(<SplashPage />) },
   { path: '/login', element: wrap(<LoginPage />) },
+  { path: '/reset-password', element: wrap(<ResetPasswordPage />) },
   {
     element: <BoutiqueGuard />,
     children: [
@@ -98,5 +102,6 @@ export const router = createBrowserRouter([
       },
     ],
   },
+  { path: '/dev/seed', element: wrap(<SeedPage />) },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

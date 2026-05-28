@@ -14,6 +14,7 @@ import {
 import { db } from '@/lib/firebase';
 import { COLLECTIONS } from '@/lib/collections';
 import { Boutique, BoutiqueBranding, BoutiqueSubscription, CloudinaryConfig } from '@/types';
+import { createPhoneUser } from '@/services/auth';
 
 const col = collection(db, COLLECTIONS.BOUTIQUES);
 
@@ -70,6 +71,7 @@ export async function createBoutique(
 ): Promise<string> {
   const ref = await addDoc(col, {
     ...data,
+    createdBy: createdByUid,
     status: 'active',
     subscription: {
       plan: 'free',
@@ -84,13 +86,17 @@ export async function createBoutique(
     updatedAt: serverTimestamp(),
   });
 
-  // Auto-invite the owner as admin so they can log in with phone OTP immediately
-  await setDoc(doc(db, COLLECTIONS.STAFF_INVITES, data.ownerPhone), {
-    phone: data.ownerPhone,
+  // Create Firebase Auth account for the boutique admin (phone as default password)
+  const adminUid = await createPhoneUser(data.ownerPhone);
+
+  await setDoc(doc(db, COLLECTIONS.BOUTIQUE_USERS, adminUid), {
+    uid: adminUid,
     boutiqueId: ref.id,
     name: data.ownerName,
+    phone: data.ownerPhone,
     role: 'admin',
-    invitedBy: createdByUid,
+    isActive: true,
+    mustResetPassword: true,
     createdAt: serverTimestamp(),
   });
 
