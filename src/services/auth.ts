@@ -62,12 +62,14 @@ export async function resolveUserRole(firebaseUser: User): Promise<AuthUser | nu
     const boutiqueSnap = await getDoc(doc(db, COLLECTIONS.BOUTIQUES, data.boutiqueId));
     const boutiqueData = boutiqueSnap.exists() ? boutiqueSnap.data() : null;
     const boutiqueName = boutiqueData?.name || 'Boutique';
+    const logoUrl = (boutiqueData?.branding as { logoUrl?: string } | undefined)?.logoUrl ?? undefined;
     return {
       uid,
       phone: data.phone as string ?? undefined,
       role: data.role as 'admin' | 'staff',
       boutiqueId: data.boutiqueId,
       boutiqueName,
+      logoUrl,
       name: data.name || 'User',
       cloudinary: boutiqueData?.cloudinary ?? undefined,
       mustResetPassword: (data.mustResetPassword as boolean) ?? false,

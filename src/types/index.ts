@@ -19,6 +19,7 @@ export interface AuthUser {
   role: UserRole;
   boutiqueId?: string;
   boutiqueName?: string;
+  logoUrl?: string;
   name: string;
   cloudinary?: CloudinaryConfig;
   mustResetPassword?: boolean;

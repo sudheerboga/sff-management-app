@@ -416,11 +416,19 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                               }}>
                                 <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                               </div>
-                              {/* {img.note && (
-                                <div style={{ width: 90, fontSize: 10, color: T.text2, marginTop: 4, lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                              {img.note && (
+                                <div style={{
+                                  width: 90, marginTop: 5,
+                                  background: T.isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+                                  border: `1px solid ${T.border}`,
+                                  borderRadius: T.r.sm,
+                                  padding: '4px 6px',
+                                  fontSize: 10, color: T.text2, lineHeight: 1.4,
+                                  overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                                }}>
                                   {img.note}
                                 </div>
-                              )} */}
+                              )}
                             </div>
                           );
                         })}

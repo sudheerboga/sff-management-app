@@ -23,7 +23,7 @@ const BoutiquesPage = lazy(() => import('@/features/admin/pages/BoutiquesPage'))
 const DeletedRecordsPage = lazy(() => import('@/features/admin/pages/DeletedRecordsPage'));
 const BoutiqueDetailPage = lazy(() => import('@/features/admin/pages/BoutiqueDetailPage'));
 const SubscriptionsPage = lazy(() => import('@/features/admin/pages/SubscriptionsPage'));
-const SeedPage = lazy(() => import('@/dev/SeedPage'));
+
 
 // App.tsx gates the router until auth is initialized, so loading is always false here.
 
@@ -102,6 +102,5 @@ export const router = createBrowserRouter([
       },
     ],
   },
-  { path: '/dev/seed', element: wrap(<SeedPage />) },
   { path: '*', element: <Navigate to="/" replace /> },
 ]);

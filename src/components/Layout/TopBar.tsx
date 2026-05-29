@@ -79,14 +79,18 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
         <Tooltip title="Account">
           <IconButton size="small" onClick={(e) => setAnchorEl(e.currentTarget)}>
             <Avatar
+              src={user?.logoUrl || undefined}
               sx={{
                 width: 34,
                 height: 34,
                 fontSize: 14,
-                background: (t) => t.palette.brand.gradient,
+                background: user?.logoUrl ? 'transparent' : (t) => t.palette.brand.gradient,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+                border: '2px solid rgba(255,255,255,0.55)',
+                img: { objectFit: 'cover' },
               }}
             >
-              {initials}
+              {!user?.logoUrl && initials}
             </Avatar>
           </IconButton>
         </Tooltip>
