@@ -18,7 +18,7 @@ export function buildMeasurementMessage(m: Measurement): string {
     ``,
     `👤 *${m.customerName}*`,
     m.memberName && m.memberName !== m.customerName ? `   └─ for: ${m.memberName}` : '',
-    m.customerPhone ? `📱 ${m.customerPhone}` : '',
+    // m.customerPhone ? `📱 ${m.customerPhone}` : '',
     ``,
     `━━━━━━━━━━━━━━`,
     garmentLines,
