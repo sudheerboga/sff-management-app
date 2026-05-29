@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "boutiqo-sales"
+    "default": "boutiqo-sales",
+    "production": "boutiqo-sales",
+    "staging": "boutiques-management"
   }
 }
