@@ -4,13 +4,12 @@ import { getAuth } from 'firebase/auth';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBPPQizMEd5sPVAONpcDVDG5gu94vM6nOw",
-  authDomain: "boutiques-management.firebaseapp.com",
-  projectId: "boutiques-management",
-  storageBucket: "boutiques-management.firebasestorage.app",
-  messagingSenderId: "253951289711",
-  appId: "1:253951289711:web:e4b8e9d6dc5280a352209a",
-  measurementId: "G-4DH4ZBZFEQ",
+  apiKey: "AIzaSyBpS8XATHDzas2kQdxF4zDeHSw0FKdZ7cA",
+  authDomain: "boutiqo-sales.firebaseapp.com",
+  projectId: "boutiqo-sales",
+  storageBucket: "boutiqo-sales.firebasestorage.app",
+  messagingSenderId: "13203812064",
+  appId: "1:13203812064:web:2f635adb4eb3c101f26a85",
 };
 
 const app = initializeApp(firebaseConfig);

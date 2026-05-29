@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { transformCloudinaryUrl } from '@/utils/cloudinary';
 
 interface LightboxImage {
   url: string;
@@ -168,7 +169,7 @@ export default function ImageLightbox({ images, startIndex, onClose }: Props) {
       {/* Image — transform applied directly via ref */}
       <img
         ref={imgRef}
-        src={cur.url}
+        src={transformCloudinaryUrl(cur.url, 'w_1200,q_auto,f_auto')}
         alt=""
         draggable={false}
         style={{

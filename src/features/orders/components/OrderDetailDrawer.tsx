@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import ImageLightbox from '@/components/common/ImageLightbox';
+import { transformCloudinaryUrl } from '@/utils/cloudinary';
 import { Drawer } from '@mui/material';
 import { format } from 'date-fns';
 import { Order } from '@/types';
@@ -414,7 +415,7 @@ export default function OrderDetailDrawer({ order, open, onClose, onStatusChange
                                 overflow: 'hidden',
                                 border: `1.5px solid ${T.border}`,
                               }}>
-                                <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                                <img src={transformCloudinaryUrl(img.url, 'c_fill,w_180,h_220,q_auto,f_auto')} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                               </div>
                               {img.note && (
                                 <div style={{

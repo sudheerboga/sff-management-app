@@ -26,7 +26,7 @@ function StatCard({
         </Box>
         <Box>
           <Typography variant="caption" color="text.secondary">{title}</Typography>
-          <Typography variant="h6" fontWeight={700} lineHeight={1.2} fontFamily="'sans-serif">{value}</Typography>
+          <Typography variant="h6" fontWeight={700} lineHeight={1.2} fontFamily="system-ui">{value}</Typography>
           {sub && <Typography variant="caption" color="text.disabled">{sub}</Typography>}
         </Box>
       </CardContent>

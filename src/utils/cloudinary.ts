@@ -1,5 +1,12 @@
 import { CloudinaryConfig, RefImage } from '@/types';
 
+// Injects Cloudinary transformations into a stored secure_url.
+// e.g. transformCloudinaryUrl(url, 'c_fill,w_400,h_400,q_auto,f_auto')
+export function transformCloudinaryUrl(url: string, transform: string): string {
+  // Cloudinary URLs: .../image/upload/<transforms>/v<version>/...
+  return url.replace('/image/upload/', `/image/upload/${transform}/`);
+}
+
 export async function uploadToCloudinary(
   file: File,
   config: CloudinaryConfig,

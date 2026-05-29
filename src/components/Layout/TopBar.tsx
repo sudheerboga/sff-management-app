@@ -85,8 +85,8 @@ export default function TopBar({ onMenuClick, showMenu = false, title }: Props) 
                 height: 34,
                 fontSize: 14,
                 background: user?.logoUrl ? 'transparent' : (t) => t.palette.brand.gradient,
-                boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
-                border: '2px solid rgba(255,255,255,0.55)',
+                boxShadow: '0 2px 8px rgb(105 105 105 / 17%)',
+                // border: '2px solid rgba(255,255,255,0.55)',
                 img: { objectFit: 'cover' },
               }}
             >

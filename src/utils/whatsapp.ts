@@ -17,6 +17,7 @@ export function buildMeasurementMessage(m: Measurement): string {
     `📐 *Measurement Slip*`,
     ``,
     `👤 *${m.customerName}*`,
+    m.memberName && m.memberName !== m.customerName ? `   └─ for: ${m.memberName}` : '',
     m.customerPhone ? `📱 ${m.customerPhone}` : '',
     ``,
     `━━━━━━━━━━━━━━`,
@@ -49,6 +50,7 @@ export function buildWhatsAppBill(order: Order, boutiqueName: string): string {
     `📋 Order Id #${order.orderNumber}`,
     '',
     `👤 ${order.customerName}`,
+    order.memberName && order.memberName !== order.customerName ? `   └─ for: ${order.memberName}` : '',
 
     // order.customerPhone ? `📱 ${order.customerPhone}` : '',
     // `📅 Order Date: ${format(order.orderDate, 'd MMM yyyy')}`,
