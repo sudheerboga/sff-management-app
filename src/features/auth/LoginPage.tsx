@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { signInWithPhone } from '@/services/auth';
-import { useNavigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores/authStore';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
@@ -26,7 +26,6 @@ function friendlyError(code: string): string {
 
 export default function LoginPage() {
   const { T } = useAppTheme();
-  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
 
   const [phone,   setPhone]   = useState('');
@@ -37,8 +36,7 @@ export default function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
 
   if (user) {
-    if (user.role === 'superAdmin') navigate('/admin', { replace: true });
-    else navigate('/dashboard', { replace: true });
+    return <Navigate to={user.role === 'superAdmin' ? '/admin' : '/dashboard'} replace />;
   }
 
   const handleLogin = async () => {
