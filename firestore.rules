@@ -101,7 +101,9 @@ service cloud.firestore {
                         && getBoutiqueUser().isActive == true);
       allow update: if isSuperAdmin()
                     || (getBoutiqueUser().boutiqueId == resource.data.boutiqueId
-                        && getBoutiqueUser().role == 'admin');
+                        && getBoutiqueUser().role == 'admin')
+                    || (request.auth.uid == uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['mustResetPassword']));
       allow delete: if isSuperAdmin();
     }
 

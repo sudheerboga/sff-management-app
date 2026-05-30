@@ -65,7 +65,7 @@ Automatically connects to `boutiques-management` (testing Firebase). No extra st
 
 ```bash
 # 1. Switch to production Google account
-firebase login:use <production-email@gmail.com>
+firebase login:use boutiqo.apps@gmail.com
 
 # 2. Switch to production Firebase project
 firebase use production
