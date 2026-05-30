@@ -94,7 +94,11 @@ service cloud.firestore {
                       && getBoutiqueUser().boutiqueId == resource.data.boutiqueId
                       && getBoutiqueUser().role == 'admin');
       allow create: if isSuperAdmin()
-                    || request.auth.uid == uid;
+                    || request.auth.uid == uid
+                    || (exists(/databases/$(database)/documents/boutiqueUsers/$(request.auth.uid))
+                        && getBoutiqueUser().boutiqueId == request.resource.data.boutiqueId
+                        && getBoutiqueUser().role == 'admin'
+                        && getBoutiqueUser().isActive == true);
       allow update: if isSuperAdmin()
                     || (getBoutiqueUser().boutiqueId == resource.data.boutiqueId
                         && getBoutiqueUser().role == 'admin');

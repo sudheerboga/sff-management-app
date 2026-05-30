@@ -81,7 +81,7 @@ export function useOrders() {
     mutationFn: ({ orderId, payments, totalAmount }: { orderId: string; payments: PaymentEntry[]; totalAmount: number }) =>
       addPaymentEntry(boutiqueId, orderId, payments, totalAmount),
     onSuccess: () => {
-      invalidatePage(qc, boutiqueId);
+      invalidateAll(qc, boutiqueId);
       enqueueSnackbar('Payment recorded', { variant: 'success' });
     },
     onError: () => enqueueSnackbar('Failed to record payment', { variant: 'error' }),
@@ -91,7 +91,7 @@ export function useOrders() {
     mutationFn: ({ orderId, materialCost, totalAmount }: { orderId: string; materialCost: number; totalAmount: number }) =>
       updateMaterialCost(boutiqueId, orderId, materialCost, totalAmount),
     onSuccess: () => {
-      invalidatePage(qc, boutiqueId);
+      invalidateAll(qc, boutiqueId);
       enqueueSnackbar('Material cost updated', { variant: 'success' });
     },
     onError: () => enqueueSnackbar('Failed to update material cost', { variant: 'error' }),

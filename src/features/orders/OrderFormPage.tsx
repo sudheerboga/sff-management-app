@@ -94,6 +94,11 @@ export default function OrderFormPage() {
   const [payNote,      setPayNote]      = useState('');
   const [matFormOpen,  setMatFormOpen]  = useState(false);
   const [matCostValue, setMatCostValue] = useState('');
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editPAmt,  setEditPAmt]  = useState('');
+  const [editPDate, setEditPDate] = useState('');
+  const [editPNote, setEditPNote] = useState('');
+  const [localMaterialCost, setLocalMaterialCost] = useState<number>(defaultValues?.materialCost ?? 0);
   const savedRef = useRef(false);
 
   // Revoke object URLs on unmount to avoid memory leaks
@@ -117,6 +122,7 @@ export default function OrderFormPage() {
       setDelivDt(defaultValues.deliveryDate ? new Date(defaultValues.deliveryDate).toISOString().split('T')[0] : '');
       setMaterial(defaultValues.materialCost ? String(defaultValues.materialCost) : '');
       setPaid(defaultValues.paidAmount       ? String(defaultValues.paidAmount)   : '');
+      setLocalMaterialCost(defaultValues.materialCost ?? 0);
       setNotes(defaultValues.notes || '');
       setLines(initLines(defaultValues));
     }
@@ -144,7 +150,7 @@ export default function OrderFormPage() {
 
   const itemTotal        = lines.reduce((acc, l) => acc + (parseFloat(l.amount) || 0), 0);
   const editPaidAmount   = isEdit ? (currentOrder?.paidAmount   || 0) : (parseFloat(paid)     || 0);
-  const editMaterialCost = isEdit ? (currentOrder?.materialCost || 0) : (parseFloat(material) || 0);
+  const editMaterialCost = isEdit ? localMaterialCost                 : (parseFloat(material) || 0);
   const balance          = Math.max(0, itemTotal - editPaidAmount);
   const profit           = itemTotal - editMaterialCost;
 
@@ -254,8 +260,8 @@ export default function OrderFormPage() {
         customerName:  customerPick.customerName,
         customerPhone: customerPick.customerPhone,
         items,
-        paidAmount:   isEdit ? (currentOrder?.paidAmount   ?? parseFloat(paid)     ?? 0) : (parseFloat(paid)     || 0),
-        materialCost: isEdit ? (currentOrder?.materialCost ?? parseFloat(material) ?? 0) : (parseFloat(material) || 0),
+        paidAmount:   isEdit ? (currentOrder?.paidAmount ?? 0) : (parseFloat(paid) || 0),
+        materialCost: isEdit ? localMaterialCost             : (parseFloat(material) || 0),
         deliveryDate: delivDt ? new Date(delivDt) : null,
         orderDate:    new Date(orderDt || today()),
         notes,
@@ -533,27 +539,79 @@ export default function OrderFormPage() {
               {currentOrder.payments && currentOrder.payments.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
                   {currentOrder.payments.map((p, i) => (
-                    <div key={p.id} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 2 }}>
-                        <div style={{ width: 10, height: 10, borderRadius: '50%', background: T.success.text, border: `2px solid ${T.success.text}33`, flexShrink: 0 }} />
-                        {i < (currentOrder.payments?.length ?? 0) - 1 && (
-                          <div style={{ width: 2, height: 28, background: T.border, borderRadius: 1 }} />
-                        )}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0, paddingBottom: i < (currentOrder.payments?.length ?? 0) - 1 ? 4 : 0 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: T.success.text, fontFamily: T.fontBody }}>₹{p.amount.toLocaleString('en-IN')}</span>
-                          <span style={{ fontSize: 11, color: T.muted }}>{format(p.date, 'd MMM yyyy')}</span>
+                    <div key={p.id}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, paddingTop: 2 }}>
+                          <div style={{ width: 10, height: 10, borderRadius: '50%', background: T.success.text, border: `2px solid ${T.success.text}33`, flexShrink: 0 }} />
+                          {i < (currentOrder.payments?.length ?? 0) - 1 && (
+                            <div style={{ width: 2, height: editingPaymentId === p.id ? 4 : 28, background: T.border, borderRadius: 1 }} />
+                          )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                          {p.note && <span style={{ fontSize: 11, color: T.text2, fontStyle: 'italic' }}>{p.note}</span>}
-                          {p.note && <span style={{ color: T.border }}>·</span>}
-                          <span style={{ fontSize: 10, color: T.muted }}>{p.recordedBy}</span>
-                          <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: T.r.pill, background: p.recordedByRole === 'staff' ? `${T.blue.d}18` : `${T.violet.d}14`, color: p.recordedByRole === 'staff' ? T.blue.d : T.violet.d, textTransform: 'capitalize' }}>
-                            {p.recordedByRole || 'admin'}
-                          </span>
+                        <div style={{ flex: 1, minWidth: 0, paddingBottom: i < (currentOrder.payments?.length ?? 0) - 1 ? 4 : 0 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: T.success.text, fontFamily: T.fontBody }}>₹{p.amount.toLocaleString('en-IN')}</span>
+                            <span style={{ fontSize: 11, color: T.muted }}>{format(p.date, 'd MMM yyyy')}</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                            {p.note && <span style={{ fontSize: 11, color: T.text2, fontStyle: 'italic' }}>{p.note}</span>}
+                            {p.note && <span style={{ color: T.border }}>·</span>}
+                            <span style={{ fontSize: 10, color: T.muted }}>{p.recordedBy}</span>
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: T.r.pill, background: p.recordedByRole === 'staff' ? `${T.blue.d}18` : `${T.violet.d}14`, color: p.recordedByRole === 'staff' ? T.blue.d : T.violet.d, textTransform: 'capitalize' }}>
+                              {p.recordedByRole || 'admin'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignSelf: 'center' }}>
+                          <button
+                            onClick={() => { setEditingPaymentId(p.id); setEditPAmt(String(p.amount)); setEditPDate(format(p.date, 'yyyy-MM-dd')); setEditPNote(p.note || ''); }}
+                            style={{ width: 26, height: 26, borderRadius: T.r.sm, border: `1px solid ${T.border}`, background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.text2 }}
+                          >
+                            <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                          </button>
+                          <button
+                            onClick={() => {
+                              const updated = (currentOrder.payments || []).filter((x) => x.id !== p.id);
+                              addPaymentMutation.mutate({ orderId: currentOrder.id, payments: updated, totalAmount: itemTotal });
+                            }}
+                            style={{ width: 26, height: 26, borderRadius: T.r.sm, border: `1px solid ${T.danger.border}`, background: T.danger.bg, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.danger.text }}
+                          >
+                            <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+                          </button>
                         </div>
                       </div>
+                      {editingPaymentId === p.id && (
+                        <div style={{ marginLeft: 20, marginTop: 6, marginBottom: 8, padding: '10px 12px', background: isDark ? 'rgba(255,255,255,0.03)' : T.bg2, borderRadius: T.r.sm, border: `1px solid ${T.border}`, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Amount (₹)</div>
+                              <input type="number" value={editPAmt} onChange={(e) => setEditPAmt(e.target.value)} style={{ width: '100%', padding: '7px 9px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 13, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }} />
+                            </div>
+                            <div style={{ flex: 1 }}>
+                              <DateInput label="Date" value={editPDate} onChange={setEditPDate} />
+                            </div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: 11, color: T.muted, marginBottom: 4 }}>Note (optional)</div>
+                            <input type="text" value={editPNote} onChange={(e) => setEditPNote(e.target.value)} style={{ width: '100%', padding: '7px 9px', border: `1.5px solid ${T.border}`, borderRadius: T.r.sm, background: T.inputBg, color: T.text, fontSize: 13, fontFamily: T.fontBody, outline: 'none', boxSizing: 'border-box', WebkitTextFillColor: T.text }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: 8 }}>
+                            <button onClick={() => setEditingPaymentId(null)} style={{ flex: 1, padding: '7px 0', borderRadius: T.r.sm, border: `1.5px solid ${T.border}`, background: 'none', color: T.text2, fontSize: 12, fontWeight: 600, fontFamily: T.fontBody, cursor: 'pointer' }}>Cancel</button>
+                            <button
+                              disabled={!editPAmt || Number(editPAmt) <= 0 || addPaymentMutation.isPending}
+                              onClick={async () => {
+                                const updated = (currentOrder.payments || []).map((x) =>
+                                  x.id === p.id ? { ...x, amount: Number(editPAmt), date: new Date(editPDate), note: editPNote.trim() } : x,
+                                );
+                                await addPaymentMutation.mutateAsync({ orderId: currentOrder.id, payments: updated, totalAmount: itemTotal });
+                                setEditingPaymentId(null);
+                              }}
+                              style={{ flex: 2, padding: '7px 0', borderRadius: T.r.sm, border: 'none', background: T.grad.brand, color: '#fff', fontSize: 12, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', opacity: (!editPAmt || Number(editPAmt) <= 0) ? 0.5 : 1 }}
+                            >
+                              {addPaymentMutation.isPending ? 'Saving…' : 'Update'}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -620,16 +678,16 @@ export default function OrderFormPage() {
                 <div style={{ padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: 12, color: T.muted, fontFamily: T.fontBody }}>
                     Material Cost
-                    {(currentOrder.materialCost ?? 0) > 0 && (
-                      <span style={{ fontWeight: 700, color: T.text2, marginLeft: 6 }}>₹{currentOrder.materialCost.toLocaleString('en-IN')}</span>
+                    {localMaterialCost > 0 && (
+                      <span style={{ fontWeight: 700, color: T.text2, marginLeft: 6 }}>₹{localMaterialCost.toLocaleString('en-IN')}</span>
                     )}
                   </span>
                   <button
-                    onClick={() => { setMatFormOpen((v) => !v); setMatCostValue(currentOrder.materialCost ? String(currentOrder.materialCost) : ''); }}
+                    onClick={() => { setMatFormOpen((v) => !v); setMatCostValue(localMaterialCost ? String(localMaterialCost) : ''); }}
                     style={{ fontSize: 11, fontWeight: 600, color: T.muted, background: 'none', border: `1px solid ${T.border}`, borderRadius: T.r.sm, padding: '3px 8px', cursor: 'pointer', fontFamily: T.fontBody, display: 'flex', alignItems: 'center', gap: 4 }}
                   >
                     <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                    {(currentOrder.materialCost ?? 0) > 0 ? 'Edit' : 'Add'}
+                    {localMaterialCost > 0 ? 'Edit' : 'Add'}
                   </button>
                 </div>
                 {matFormOpen && (
@@ -647,7 +705,9 @@ export default function OrderFormPage() {
                       disabled={updateMaterialCostMutation.isPending}
                       onClick={async () => {
                         if (!currentOrder) return;
-                        await updateMaterialCostMutation.mutateAsync({ orderId: currentOrder.id, materialCost: Number(matCostValue) || 0, totalAmount: itemTotal });
+                        const newCost = Number(matCostValue) || 0;
+                        await updateMaterialCostMutation.mutateAsync({ orderId: currentOrder.id, materialCost: newCost, totalAmount: itemTotal });
+                        setLocalMaterialCost(newCost);
                         setMatFormOpen(false);
                       }}
                       style={{ padding: '8px 14px', borderRadius: T.r.sm, border: 'none', background: T.grad.brand, color: '#fff', fontSize: 13, fontWeight: 700, fontFamily: T.fontBody, cursor: 'pointer', flexShrink: 0 }}>
